@@ -1,0 +1,36 @@
+{
+  "lastChecked": "[phone]",
+  "source": "wttr.in",
+  "updateBeforeDeparture": true,
+  "overview": "Forecast for Paris. Update with seed-weather.sh before departure.",
+  "criticalBookings": [
+    "Review outdoor attractions against overallRisk before each day"
+  ],
+  "days": [
+    {
+      "day": "Day1",
+      "date": "Mon Jan 1",
+      "city": "CITY",
+      "tempMin": 15,
+      "tempMax": 25,
+      "rainPct": 68,
+      "overallRisk": "MEDIUM",
+      "note": "Overcast "
+    }
+  ],
+  "indoorFallbacks": [
+    {
+      "note": "Fill in indoor fallback per high-risk day before trip"
+    }
+  ],
+  "gear": [
+    "Compact umbrella",
+    "Light rain jacket",
+    "Sunscreen SPF50+"
+  ],
+  "weatherApps": [
+    "weather.gov.sg (Singapore)",
+    "met.gov.my (Malaysia)",
+    "imd.gov.in (India)"
+  ]
+}

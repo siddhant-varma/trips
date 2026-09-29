@@ -1,0 +1,14 @@
+{
+  "bookings": [
+    {
+      "item": "Outbound Flight",
+      "status": "booked",
+      "date": "Jan 1"
+    },
+    {
+      "item": "Return Flight",
+      "status": "booked",
+      "date": "Jan 7"
+    }
+  ]
+}

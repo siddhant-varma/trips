@@ -1,0 +1,10 @@
+{
+  "alternates": {
+    "attraction-1": [
+      {
+        "name": "Backup Attraction",
+        "reason": "Cheaper, nearby, open later"
+      }
+    ]
+  }
+}

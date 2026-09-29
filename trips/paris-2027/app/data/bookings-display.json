@@ -1,0 +1,36 @@
+{
+  "categories": [
+    "flights",
+    "hotels",
+    "transport",
+    "attractions",
+    "dining",
+    "admin"
+  ],
+  "bookings": [
+    {
+      "id": "flights-out",
+      "item": "Outbound Flight",
+      "short": "Flight DEL→DEST",
+      "category": "flights",
+      "status": "booked",
+      "date": "Jan 1",
+      "sortDate": "[phone]",
+      "vouchers": [],
+      "urlKeys": [],
+      "notes": ""
+    },
+    {
+      "id": "hotel-main",
+      "item": "Hotel (5 nights)",
+      "short": "City Hotel",
+      "category": "hotels",
+      "status": "booked",
+      "date": "Jan 1–6",
+      "sortDate": "[phone]",
+      "vouchers": [],
+      "urlKeys": [],
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "id": "attraction-1",
+      "name": "Main Attraction",
+      "type": "attraction",
+      "status": "primary",
+      "day": "Day1",
+      "cluster": "City Centre",
+      "cost": "$20",
+      "notes": ""
+    },
+    {
+      "id": "food-1",
+      "name": "Local Restaurant",
+      "type": "food",
+      "status": "optional",
+      "day": "",
+      "cluster": "Old Town",
+      "cost": "$15",
+      "notes": "Famous for local dish"
+    }
+  ]
+}
