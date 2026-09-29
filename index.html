@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trips by Sid</title>
+<meta name="description" content="Trip planning PWAs — itineraries, bookings, weather, maps.">
+<style>
+  :root {
+    --bg:     #0a1628;
+    --bg2:    #0f2040;
+    --bg3:    #162a52;
+    --border: #1e3a6e;
+    --text:   #e8f0fe;
+    --text2:  #8eaad4;
+    --text3:  #4d6fa3;
+    --accent: #f59e0b;
+    --accent2:#fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    padding: 0 0 4rem;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(160deg, #0d1f3d 0%, #0a1628 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 1rem 2rem;
+    text-align: center;
+  }
+  .header-icon { font-size: 3rem; line-height: 1; margin-bottom: 0.75rem; }
+  .header h1 {
+    font-size: 1.8rem; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.4rem;
+  }
+  .header p { font-size: 0.85rem; color: var(--text2); max-width: 360px; margin: 0 auto; }
+
+  /* ── Section label ── */
+  .section-label {
+    max-width: 900px; margin: 1.5rem auto 0;
+    padding: 0 1rem;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+    color: var(--text3); text-transform: uppercase;
+  }
+
+  /* ── Grid ── */
+  .trips-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    padding: 0.75rem 1rem 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ── Card ── */
+  .trip-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+    text-decoration: none; color: inherit;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
+    position: relative; overflow: hidden;
+  }
+  .trip-card::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0; transition: opacity .2s;
+  }
+  .trip-card:hover {
+    border-color: rgba(245,158,11,.5);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .trip-card:hover::before { opacity: 1; }
+
+  .card-flags  { font-size: 2rem; line-height: 1; }
+  .card-title  { font-size: 1rem; font-weight: 700; }
+  .card-dates  { font-size: 0.72rem; color: var(--accent); font-weight: 700; letter-spacing: .04em; }
+  .card-cities { display: flex; gap: 4px; flex-wrap: wrap; }
+  .city-chip   {
+    font-size: 0.68rem; background: var(--bg3); color: var(--text2);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 2px 8px; white-space: nowrap;
+  }
+  .card-summary { font-size: 0.78rem; color: var(--text2); line-height: 1.55; flex: 1; }
+  .card-cta {
+    margin-top: auto;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.78rem; font-weight: 700; color: var(--accent);
+    padding-top: 10px; border-top: 1px solid var(--border);
+  }
+  .card-cta-arrow { font-size: 1rem; }
+
+  /* ── Empty ── */
+  .empty { text-align: center; padding: 4rem 1rem; color: var(--text3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">✈️</div>
+  <h1>Trips by Sid</h1>
+  <p>Trip PWAs — offline itineraries, bookings, maps & weather</p>
+</div>
+
+<div class="section-label">All Trips</div>
+
+<div class="trips-grid" id="grid">
+  <div class="empty">Loading…</div>
+</div>
+
+<script>
+// Trip data inline — no fetch required for static hosting
+const TRIPS = [
+  {
+    "slug":    "singapore-malaysia-2026",
+    "title":   "Singapore & Malaysia 2026",
+    "flags":   "🇸🇬🇲🇾",
+    "dates":   "Sep 21–27, 2026",
+    "cities":  ["Singapore", "Kuala Lumpur"],
+    "summary": "7 days · USS · Sentosa Cable Car · Petronas SkyBridge · KL street food · overnight buses",
+    "url":     "trips/singapore-malaysia-2026/app/"
+  }
+];
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+const grid = document.getElementById("grid");
+
+if (!TRIPS.length) {
+  grid.innerHTML = `<div class="empty">No trips yet.</div>`;
+} else {
+  grid.innerHTML = TRIPS.map(t => `
+    <a class="trip-card" href="${esc(t.url)}">
+      <div class="card-flags">${esc(t.flags)}</div>
+      <div>
+        <div class="card-title">${esc(t.title)}</div>
+        <div class="card-dates">${esc(t.dates)}</div>
+      </div>
+      <div class="card-cities">
+        ${(t.cities||[]).map(c => `<span class="city-chip">${esc(c)}</span>`).join("")}
+      </div>
+      <div class="card-summary">${esc(t.summary)}</div>
+      <div class="card-cta"><span>Open Trip</span><span class="card-cta-arrow">→</span></div>
+    </a>
+  `).join("");
+}
+</script>
+</body>
+</html>

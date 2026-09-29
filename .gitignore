@@ -1,0 +1,8 @@
+# PII files — never commit
+trips/*/app/data/essentials.json
+trips/*/app/vouchers/
+trips/*/app/vouchers
+
+# macOS
+.DS_Store
+**/.DS_Store

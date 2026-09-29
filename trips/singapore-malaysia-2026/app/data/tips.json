@@ -1,0 +1,91 @@
+{
+  "tips": {
+    "fort-canning-priority": [
+      "Go before heat/crowds build — morning slot locked in Day2"
+    ],
+    "artscience-ticketing": [
+      "Book the teamLab Future World + Digital Light Canvas combo (Mon-Thu rate, SGD24/pax) directly on marinabaysands.com/museum, not Klook — with Sands LifeStyle's free 30% discount it comes to SGD16.80/pax, cheaper than a single-exhibition Klook ticket while getting two experiences. Confirm current exhibition lineup closer to Sep2026 — showings rotate"
+    ],
+    "sands-lifestyle-signup": [
+      "Do this FIRST, before buying the ArtScience ticket: (1) Download the Marina Bay Sands mobile app, (2) Sign up for Sands LifeStyle (free tier) with passport details, (3) Buy the ArtScience Museum ticket in-app or show membership at counter for the 30% discount, (4) Later that same day, show the same membership at the Sands LifeStyle counter to claim the free Sampan Ride ticket. One signup covers both the ArtScience discount and the free Sampan — discount does not apply retroactively if bought before signing up"
+    ],
+    "sampan-free-hack": [
+      "Claim at Sands LifeStyle counter using the membership signed up earlier in the day (see sands-lifestyle-signup tip) — free Sampan ride ticket, skip the paid version"
+    ],
+    "uss-ride-order": [
+      "Transformers first (queue builds fastest), mix major rides with chill rides to pace the day. IG-confirmed strategy for skipping Express Pass (saves ~₹6,000-7,000/2pax, matches your existing Standard-ticket booking): hit main attractions first, cover key shows next, save the single longest-queue ride for the end of the day when crowds thin. Download the Universal Studios Singapore app and follow the live queue-time map"
+    ],
+    "tekka-centre": [
+      "Closes 9pm — go 8am for authentic non-touristy version, not evening"
+    ],
+    "maxwell-food-centre": [
+      "Tian Tian's queue no longer worth it per locals — Ah Tai chicken rice (2 stalls down) same quality, no queue"
+    ],
+    "newton-food-centre": [
+      "Morning = local pricing, night = tourist markup. Locals also flag it as a tourist trap generally"
+    ],
+    "lau-pa-sat": [
+      "Satay street opens 7pm outside, SGD 1/stick"
+    ],
+    "batu-caves": [
+      "Go 7am — beat heat + crowds, done by 10am. Zip bags, monkeys steal loose items"
+    ],
+    "petronas-skybridge": [
+      "Sells out — book ahead. Opens 9am, closed Mondays"
+    ],
+    "aras-restaurant": [
+      "Formerly Atmosphere 360 — permanently closed & renamed. Rotating restaurant, lunch is the value sweet spot, not dinner"
+    ],
+    "jalan-alor": [
+      "Best food street in KL, Bukit Bintang, evenings from 6pm"
+    ],
+    "sats-premier-lounge": [
+      "Free via HDFC Diners Club Black — RESOLVED research: this is add-on-card access, not a generic +1 guest policy. Prabha is covered ONLY if she holds an active add-on Diners Club Black card — confirm before Sep21, some airports have rejected add-on cards inconsistently, and lounges may need a 2-3min gap between swiping primary/add-on cards. SATS Premier: 3 showers (spotless, cramped per reviews), massage chairs, buffet, Priority Pass Lounge of the Year APAC 2017. Backup: ICICI Sapphiro Priority Pass (2 comp visits) → use Ambassador Transit Lounge, T2 Level 3 next to Sunflower Garden (same area as the optional T2-attractions block) — also has shower+gym, well-reviewed, zero extra transit if you end up here instead"
+    ],
+    "gst-refund": [
+      "9% refund over SGD100 spend — claim at Changi before flying out, not after security if avoidable"
+    ],
+    "sin-sim": [
+      "Full strategy in essentials.json → simStrategy: Singtel hi! Tourist $15/30-day eSIM (buy now, activate on landing) + free Pelago eSIM as immediate backup + M1 Tourist+EZ-Link as a second-carrier redundancy SIM, also valid in Malaysia. Enable Singtel local calls/SMS in person Day1 evening at a retailer near Rochor (Chai King or W&E Global, both at Rochor MRT)"
+    ],
+    "sin-currency": [
+      "Exchange SGD in Singapore, not Delhi. MRT contactless tap > EZ-Link tourist pass"
+    ],
+    "kl-transport": [
+      "Grab for most transit. Batu Caves = KTM only, not Grab. Petronas Skybridge booking opens 9am. Get a Touch 'n Go (TNG) card for MRT/LRT/Monorail/buses/tolls in one card. Go KL City Bus (purple) is a 100% free tourist shuttle covering KLCC/Chinatown/Bukit Bintang — zero-cost fallback for short hops. MRT (Kajang/Putrajaya) reaches Bukit Bintang, LRT hits KLCC+KL Sentral (avoid rush hour), Monorail is KL Sentral↔Bukit Bintang direct"
+    ],
+    "kl-etiquette": [
+      "No cross-gender handshake initiation (majority-Muslim country) — hand over heart/nod to women unless she offers first. Banana leaf dining: fold leaf toward you if you enjoyed the meal, away = funeral gesture. Zero-tolerance drug laws, severe penalties. Carry ~$100 USD-equiv in Ringgit cash for street food/night markets despite wide card acceptance"
+    ],
+    "sin-etiquette-fines": [
+      "Fine City specifics: no jaywalking (zebra crossings only, enforced), no chewing gum sale/import, no loud noise after 10pm, must flush public toilets, no feeding animals/birds, no durian on public transport, no smoking outside designated areas. Stand left on MRT escalators. Make eye contact with turning drivers before crossing — cars can legally turn into pedestrian crossings"
+    ],
+    "sin-hawker-hacks": [
+      "Carry tissue packets — hawker centers don't provide napkins, and locals use a tissue pack to 'chope' (reserve) a table before ordering; nobody touches a choped table. Order 'Kopi C Kosong' for iced coffee with creamer, no sugar (default is sweet), $1-1.50 at hawker stalls vs Starbucks pricing"
+    ],
+    "sin-navigation": [
+      "busrouter.sg gives better live bus-route/tracking than Google Maps, which sometimes miscalculates transit walking times. Avoid downtown-core taxis (CBD) — $3 surcharge plus heavy traffic; fine for airport-to-city, not for hopping around downtown"
+    ],
+    "fort-canning-battlebox": [
+      "Fort Canning Park (already Day2 morning) has a 'Battlebox' — WWII underground bunker, low-effort add since you're already there. Check entry fee/hours if the morning block has slack"
+    ],
+    "water-lily-pond": [
+      "IG-sourced: Water Lily Pond inside Gardens by the Bay, free, no ticket, quiet/uncrowded vs Supertree crowds. Best 7-9am, outdoor gardens open 5am. Access via MRT Bayfront (CE1/DT16) Exit B → underground linkway → Dragonfly Bridge → pond; or Garden Bay Bridge from MBS side. Fits naturally into the Day2 Anywheel sunrise loop (already passes Gardens by the Bay exterior) — optional add, not forced"
+    ],
+    "anywheel-sunrise": [
+      "Anywheel setup: download app (App Store/Google Play), register with mobile number + payment method, top up wallet min SGD10 (this acts as prepaid credit, non-refundable/no expiry — not a cash deposit). Find nearest bike via app map, scan QR to unlock. Pricing SGD1/30min block. MUST end ride at a designated 'P' parking zone (shown on app map) and scan QR there to close the ride — parking outside a marked zone = SGD5 relocation fee, dockless does not mean park-anywhere. Two independent sources confirm 6:30-9:30am as best Merlion sunrise light + crowd window. Optional, skippable if oversleeping — does not block the 7-10am Fort Canning must-block. Support: anywheel.sg / [phone]"
+    ],
+    "rain-contingency": [
+      "Full audit in [phone]-rain-contingency-plan.md. CRITICAL same-day weather calls: Skyline Luge Day3 16:00 (suspends for lightning, already rescheduled once — call venue if storms active), Wings of Time Day3 7:40pm (shows get cancelled in heavy rain, check RWS status before heading over), Water B Cruise Day4 (walk-up, ask kiosk staff about weather policy BEFORE paying), Cable Car Day3 return (suspends for wind/lightning, use Sentosa Express as backup), hotel pools Day5+Day6 (non-refundable, ask staff to extend your slot if closed mid-session for lightning). Free/optional items (1-Arden, Anywheel, OCBC Skyway, Spectra, Palawan Beach) — just skip/shorten, no loss. Indoor rain-day anchors already in your plan: ArtScience Museum, Cloud Forest dome, S.E.A. Aquarium (Day3, currently optional — promote if outdoor Sentosa items get cancelled), Lalaspeed (genuinely indoor mall facility), ARAS Restaurant, Jewel's covered dome, Orchard malls. Check myENV (SG) and MetMalaysia (KL) apps each morning for live lightning alerts, not just rain %"
+    ],
+    "kl-shopping-shortlist": [
+      "Batik: Gerson, Batik Boutique, Upstairs at Central Market (on-route Day5, zero extra transit), Inkaa. Local goods/crafts: Badan Warisan, Lah Lah Land, LG Level in Isetan, RexKL (antiques), Shades, Central Market, The Pocket (Whereabouts), grocery stores, Ana Tomy (Zhongshan Building), GMBB, Earth Heir, Treasure Trove. Skincare: Guardian, Watsons, Olive Young (newly opened). All parked as optional — Day5-6 already full, squeeze in only if ahead of schedule, Central Market stop already covers the batik/crafts angle for free"
+    ],
+    "wings-of-time-buffet": [
+      "Good Old Days Buffet (included in the booked Wings of Time combo) is open 17:00-22:00, last order 21:00 — use it as Day3 dinner right after the 7:40pm show, no separate VivoCity/Tekka dinner needed. Earlier itinerary draft missed this and double-booked a dinner slot — corrected"
+    ],
+    "changi-t2-attractions": [
+      "T2 airside/transit (your departure terminal, Day7): Dreamscape (immersive garden, digital sky/light/sound show, 20,000 plants, Transit Level 2), Orchid Garden, Sunflower Garden (rooftop, runway view, transforms at night with lighting), Calm Room (quiet space, Transit Level 2, open 24hrs). All free, no extra security clearance needed since already past security. Free inter-terminal train connects all terminals + Jewel. Other terminals for reference (not relevant to your T2 departure): T1 Cactus/Water Lily Garden, T3 slide/Butterfly Garden/movie theatre, T4 gaming zone/Peranakan show"
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "alternates": {
+    "day2-evening-view": [
+      {
+        "name": "Level 33",
+        "reason": "Alt rooftop, not scheduled"
+      },
+      {
+        "name": "One Altitude",
+        "reason": "Alt rooftop, not scheduled"
+      },
+      {
+        "name": "Marina Barrage",
+        "reason": "Free golden-hour picnic alt, parked"
+      }
+    ],
+    "day2-lunch": [
+      {
+        "name": "Din Tai Fung",
+        "reason": "Backup to Satay by the Bay if queue too long"
+      }
+    ],
+    "day2-dinner": [
+      {
+        "name": "Erode Amman Mess",
+        "reason": "Backup to Zam Zam (Little India)"
+      }
+    ],
+    "day3-dinner": [
+      {
+        "name": "Tekka Centre",
+        "reason": "Dropped as scheduled dinner (closes 9pm, timing risk) — kept as fallback for a future visit, per explicit instruction not to delete"
+      }
+    ],
+    "day4-dinner": [
+      {
+        "name": "Brewerkz, Riverside Point",
+        "reason": "Downgraded from Must — real transit + 9:30pm last-call timing risk if pursued instead of Marina Bay dinner"
+      }
+    ],
+    "day5-breakfast": [
+      {
+        "name": "Toast Box / Ya Kun",
+        "reason": "Generic breakfast alt near KLCC-Bukit Bintang walkway"
+      }
+    ],
+    "kul-hotel-area": [
+      {
+        "name": "KL Sentral/Brickfields",
+        "reason": "Zero-friction for early departures (Batu Caves, Genting) but Brickfields nightlife rated poor by locals — Bukit Bintang chosen instead for livability"
+      }
+    ],
+    "kul-day6-alt": [
+      {
+        "name": "Genting Highlands",
+        "reason": "Originally planned Day6 activity, dropped in favor of KL Tower + Petronas + W KL pool sequence — parked as a future-trip idea"
+      }
+    ],
+    "day3-sentosa-parked": [
+      {
+        "name": "Harry Potter: Visions of Magic (WEAVE, RWS)",
+        "reason": "SGD49-59/pax (~SGD98-118 for 2), 60-90min self-guided immersive experience. Same complex as USS, zero extra transit. Parked — no open slot in the already-packed Day3 (USS→HyperDrive→Luge 5-6pm→Palawan Beach→Wings of Time 7:40pm) and budget is already over ceiling post-FX-correction. Last entry 8pm, doesn't help since Wings of Time ends ~8pm anyway. Revisit only if something else on Day3 gets cut"
+      }
+    ],
+    "backup-destination": [
+      {
+        "name": "Langkawi",
+        "reason": "Parked backup (~₹45,692 extra for 2 pax) — September monsoon risk on west coast, not activated"
+      }
+    ],
+    "day4-river-cruise-booking-links": [
+      {
+        "name": "Water B — Light Show Cruise (primary, in urls.json)",
+        "reason": "https://bookings.waterb.com.sg/products/light-show-cruise-ticket — confirmed on-water Spectra viewing, SGD40/pax, 7:30/8:30pm slots"
+      },
+      {
+        "name": "GlobalTix — Singapore River Cruise",
+        "reason": "https://singaporerivercruise-online.globaltix.com/attraction/singapore-river-cruise-56 — likely the plain SRC bumboat (not light-show specific), saved for price/availability comparison before booking"
+      },
+      {
+        "name": "rivercruise.com.sg — official SRC site",
+        "reason": "https://rivercruise.com.sg/river-cruise/ — Singapore River Cruise's own site, check if they offer a light-show/evening variant distinct from Water B's before finalizing"
+      }
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "singapore": [
+    {
+      "cluster": "Little India/Rochor",
+      "items": [
+        "zam-zam"
+      ],
+      "notes": "Hotel base — Dash Living Rochor"
+    },
+    {
+      "cluster": "Kampong Glam",
+      "items": [
+        "zam-zam"
+      ]
+    },
+    {
+      "cluster": "Marina Bay",
+      "items": [
+        "merlion-park",
+        "helix-bridge",
+        "cloud-forest",
+        "supertree-observatory",
+        "gbtb-skywalk",
+        "floral-fantasy",
+        "ocbc-skyway",
+        "garden-rhapsody",
+        "spectra",
+        "sampan-ride",
+        "sands-lifestyle",
+        "satay-by-the-bay",
+        "artscience-museum",
+        "din-tai-fung",
+        "ps-cafe",
+        "marina-barrage"
+      ]
+    },
+    {
+      "cluster": "Clarke Quay/Fort Canning",
+      "items": [
+        "fort-canning-tree-tunnel"
+      ]
+    },
+    {
+      "cluster": "Clarke Quay/City Hall",
+      "items": [
+        "hill-street-police-station",
+        "armenian-street"
+      ]
+    },
+    {
+      "cluster": "Raffles Place",
+      "items": [
+        "lau-pa-sat",
+        "1-arden-sky-garden"
+      ]
+    },
+    {
+      "cluster": "Sentosa",
+      "items": [
+        "uss",
+        "hyperdrive",
+        "skyline-luge",
+        "wings-of-time",
+        "palawan-beach"
+      ]
+    },
+    {
+      "cluster": "HarbourFront",
+      "items": [
+        "vivocity"
+      ]
+    },
+    {
+      "cluster": "Little India",
+      "items": [
+        "tekka-centre",
+        "mustafa-centre"
+      ]
+    },
+    {
+      "cluster": "Chinatown",
+      "items": [
+        "maxwell-food-centre",
+        "song-fa",
+        "darkness-dessert",
+        "newspaper-photo-booth"
+      ]
+    },
+    {
+      "cluster": "East Coast Park",
+      "items": [
+        "ecp-cycling"
+      ]
+    },
+    {
+      "cluster": "Kallang",
+      "items": [
+        "kallang-otters"
+      ]
+    },
+    {
+      "cluster": "Orchard/Newton",
+      "items": [
+        "newton-food-centre"
+      ]
+    },
+    {
+      "cluster": "Changi Airport",
+      "items": [
+        "jewel-changi",
+        "sats-premier-lounge",
+        "charles-keith",
+        "changi-budget-canteens"
+      ]
+    }
+  ],
+  "kualaLumpur": [
+    {
+      "cluster": "Bukit Bintang",
+      "items": [
+        "q-pocket",
+        "minnature",
+        "jamboo-cafe",
+        "pavilion-mall",
+        "damascus-shawarma",
+        "32-parfait",
+        "jalan-alor"
+      ]
+    },
+    {
+      "cluster": "KLCC",
+      "items": [
+        "ombak-klcc",
+        "petronas-skybridge",
+        "w-kl-pool",
+        "saloma-link",
+        "lake-symphony",
+        "nz-curry-house"
+      ]
+    },
+    {
+      "cluster": "Petaling St/Chinatown KL",
+      "items": [
+        "merdeka-square",
+        "central-market",
+        "petaling-street-market",
+        "hidden-mural",
+        "kwai-chai-hong",
+        "lai-foong"
+      ]
+    },
+    {
+      "cluster": "Batu Caves",
+      "items": [
+        "batu-caves"
+      ]
+    },
+    {
+      "cluster": "KL Tower/Dang Wangi",
+      "items": [
+        "aras-restaurant"
+      ]
+    }
+  ],
+  "transitNotes": [
+    {
+      "cluster": "Batu Caves",
+      "note": "KTM Komuter from KL Sentral, ~30-40min, first train ~7:05am weekday"
+    },
+    {
+      "cluster": "OCBC Skyway → Marina Bay dinner",
+      "note": "~10min walk to Marina Bay waterfront"
+    },
+    {
+      "cluster": "Sentosa → HarbourFront",
+      "note": "Cable car, last boarding 9:30pm"
+    },
+    {
+      "cluster": "TBS ↔ Bukit Bintang",
+      "note": "~15-20min transit, not walking distance"
+    },
+    {
+      "cluster": "KLCC-Bukit Bintang Walkway",
+      "note": "~15min, covered/aircon"
+    },
+    {
+      "cluster": "Boon Lay → City",
+      "note": "~40-50min via East-West MRT line"
+    }
+  ]
+}

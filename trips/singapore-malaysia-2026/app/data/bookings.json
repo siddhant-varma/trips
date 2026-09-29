@@ -1,0 +1,110 @@
+{
+  "bookings": [
+    {
+      "item": "Flights DEL↔SIN (IndiGo, [ref])",
+      "status": "booked",
+      "date": "Sep21 09:05 DEL→SIN / Sep27 19:45 SIN→DEL"
+    },
+    {
+      "item": "Hotel SIN — Dash Living Rochor",
+      "status": "booked",
+      "date": "Sep21-24 (3N)"
+    },
+    {
+      "item": "Hotel KUL — Hotel Royal Signature",
+      "status": "booked",
+      "date": "Sep25-26 (1N)"
+    },
+    {
+      "item": "Bus SIN→KUL — KKKL Express (SVIP Executive)",
+      "status": "booked",
+      "date": "Sep24 00:30 (dated 25 Sep), Bugis MRT Exit D → LaLaport Bukit Bintang"
+    },
+    {
+      "item": "Bus KUL→SIN — Cosmic Singapore Express (Executive Double Decker)",
+      "status": "booked",
+      "date": "Sep26 00:15 (dated 27 Sep), TBS → Boon Lay"
+    },
+    {
+      "item": "Singapore MEV Visa",
+      "status": "booked",
+      "date": "Approved"
+    },
+    {
+      "item": "Petronas Twin Towers Skybridge (Sky Xperience Evening Experience)",
+      "status": "booked",
+      "date": "Day5, Sep25 18:30 entry"
+    },
+    {
+      "item": "Universal Studios Singapore",
+      "status": "booked",
+      "date": "Day3, Sep23"
+    },
+    {
+      "item": "Cloud Forest + Flower Dome (Jurassic World)",
+      "status": "booked",
+      "date": "Day2, Sep22"
+    },
+    {
+      "item": "Lalaspeed E Kart Raceway (LaLaport Bukit Bintang)",
+      "status": "not-booked",
+      "date": "Day5, early afternoon"
+    },
+    {
+      "item": "Skyline Luge (4 Ride Combo, Peak)",
+      "status": "booked",
+      "date": "Day3, Sep23, 17:00-18:00 (1hr session)"
+    },
+    {
+      "item": "Wings of Time (Standard + Good Old Days Buffet)",
+      "status": "booked",
+      "date": "Day3, Sep23, 7:40pm show"
+    },
+    {
+      "item": "Cable Car SkyPass Premium (SkyOrb + Sentosa Line) + Singapore Sling bundle",
+      "status": "booked",
+      "date": "Day3, Sep23"
+    },
+    {
+      "item": "Water B Light Show Cruise",
+      "status": "walk-up-planned",
+      "date": "Day4 evening, 7:30pm slot — buy in person at Fort Canning kiosk, not prebooked online"
+    },
+    {
+      "item": "ArtScience Museum (Future World or Into the Ocean)",
+      "status": "not-booked",
+      "date": "Day2, Sep22, 2:00-4:00pm block"
+    },
+    {
+      "item": "1-Arden Sky Garden — Sep21 evening slot (6-10pm)",
+      "status": "booked-2-guests",
+      "date": "Day1, Sep21, 18:00-22:00"
+    },
+    {
+      "item": "1-Arden Sky Garden — Sep22 evening slot (6-10pm, backup)",
+      "status": "booked",
+      "date": "Day2, Sep22, 18:00-22:00"
+    },
+    {
+      "item": "1-Arden Sky Garden — Sep22 afternoon (2:30-5:30pm)",
+      "status": "booked-2-guests",
+      "date": "Day2, Sep22, 14:30-17:30",
+      "notes": "Now booked for 2 guests under Prabha's account — supersedes the earlier 1-guest booking made minutes before. CHECK SevenRooms/email for a possible duplicate reservation (1-guest + 2-guest both existing) and cancel the redundant one if so. Still overlaps ArtScience Museum (2-4pm) and Sands/Sampan/Cloud Forest (4-7pm) Musts — both of you would need to skip/shorten those to use this slot"
+    },
+    {
+      "item": "W KL Rooftop Pool day pass",
+      "status": "booked",
+      "date": "Sat Sep26, 15:00 slot"
+    },
+    {
+      "item": "ARAS Restaurant (KL Tower) lunch reservation",
+      "status": "not-booked",
+      "date": "Day6, 12:00-14:30 (relaxed, reinstated)"
+    },
+    {
+      "item": "ICICI Sapphiro Priority Pass activation (2 comp intl lounge visits)",
+      "status": "pending-action",
+      "date": "Activate before Sep21"
+    }
+  ]
+}

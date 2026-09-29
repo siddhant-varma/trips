@@ -1,0 +1,722 @@
+{
+  "days": [
+    {
+      "date": "Mon Sep21",
+      "day": "Day1",
+      "city": "SIN",
+      "blocks": [
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Land Changi T2 → activate Pelago eSIM for immediate connectivity → Hotel check-in (Dash Living Rochor, Little India/Rochor) → Dinner — Zam Zam (Murtabak)",
+          "cluster": "Changi → Little India/Rochor → Kampong Glam",
+          "notes": "No breakfast/lunch — arrival day. Jewel Changi moved to Day7 (better transit fit)",
+          "urlKeys": [
+            "zam-zam"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Visit Singtel hi! retailer near hotel (Chai King, 135 Dunlop St, or W&E Global, Sim Lim Square — both at Rochor MRT) to enable local calls/SMS on the pre-purchased Singtel eSIM, passport required",
+          "cluster": "Little India/Rochor",
+          "notes": "Singtel eSIM should already be purchased+activated for data before departure — this stop is just to add local calls/SMS"
+        },
+        {
+          "block": "Night (18:00-22:00)",
+          "type": "optional",
+          "activity": "1-Arden Sky Garden (CapitaSpring, Level 51) — BOOKED, 2 guests",
+          "cluster": "Raffles Place/CapitaSpring",
+          "notes": "REAL TIMING RISK, flagged not resolved: landing 17:45 → immigration/baggage (~1-1.5hr) → hotel checkin → this booking starts 18:00. Realistically you'll arrive late into this window, not at 18:00 sharp — go straight from Changi toward CapitaSpring if running behind, checkin/dinner/Singtel-stop can shift later since this booking is time-fixed and the others aren't. Replaces the Marina Bay walk below as tonight's main activity (Merlion/Helix still covered separately via the Day2 Anywheel sunrise loop)",
+          "urlKeys": [
+            "1-arden-sky-garden"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "Marina Bay walk — Merlion Park (photo), Jubilee/Dragonfly Bridge (photo), Helix Bridge",
+          "cluster": "Marina Bay",
+          "notes": "Downgraded to optional — 1-Arden now occupies this slot. Merlion sunrise shot already covered Day2 via Anywheel loop; do this only if genuinely ahead of schedule after 1-Arden",
+          "urlKeys": [
+            "merlion-park",
+            "helix-bridge"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "Haji Lane + Arab Street",
+          "cluster": "Kampong Glam",
+          "notes": "Fallback to Day4 if skipped"
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "Ah Heng Curry Chicken Bee Hoon Mee (Queen St branch)",
+          "cluster": "Bugis/Little India-Rochor",
+          "notes": "Single-dish stall, close to hotel"
+        },
+        {
+          "block": "Late Night",
+          "type": "must",
+          "activity": "Return hotel, stay awake till ~23:00, sleep",
+          "cluster": "Little India/Rochor",
+          "notes": "Jetlag mgmt — no nap, light activity till normal bedtime"
+        }
+      ]
+    },
+    {
+      "date": "Tue Sep22",
+      "day": "Day2",
+      "city": "SIN",
+      "blocks": [
+        {
+          "block": "Morning (7-10am)",
+          "type": "must",
+          "activity": "Breakfast — Toast Box (Fort Canning/City Hall outlet) → Fort Canning Tree Tunnel (photo) → Fort Canning Park",
+          "cluster": "Clarke Quay/Fort Canning",
+          "notes": "Priority slot, before heat",
+          "urlKeys": [
+            "toast-box",
+            "fort-canning-tree-tunnel"
+          ],
+          "tipKeys": [
+            "fort-canning-priority"
+          ]
+        },
+        {
+          "block": "Very Early Morning (5:45-7:00am)",
+          "type": "optional",
+          "activity": "Anywheel cycle loop: unlock near hotel/Marina Bay → Merlion Park (sunrise photo) → Gardens by the Bay exterior → Marina Barrage → back, transit to Fort Canning by 7:00am",
+          "cluster": "Marina Bay",
+          "notes": "LTA-licensed, dockless, $1/30min, no deposit, postpaid via app (download, register, link payment, unlock, ride, pay after). 6:30-9:30am gives golden directional light on Merlion's face, near-zero crowds — genuinely different from the evening Day1 shot. Does not conflict with Day4 East Coast Park cycling (different location/purpose: sunrise photo loop vs. full leisure ride). Ends before existing 7-10am Fort Canning block, does not displace it",
+          "urlKeys": [
+            "anywheel-cycling",
+            "water-lily-pond"
+          ],
+          "tipKeys": [
+            "anywheel-sunrise",
+            "water-lily-pond"
+          ]
+        },
+        {
+          "block": "Morning (7-10am)",
+          "type": "optional",
+          "activity": "Hill Street Police Station (photo), Armenian Street (photo)",
+          "cluster": "Clarke Quay/City Hall",
+          "notes": "Same cluster, easy add",
+          "urlKeys": [
+            "hill-street-police-station"
+          ]
+        },
+        {
+          "block": "Late Morning/Afternoon (11am-1pm)",
+          "type": "optional",
+          "activity": "Return to hotel, rest/shower/AC break",
+          "cluster": "Little India/Rochor",
+          "notes": "Buffer before museum block — skip if ahead of schedule and go straight to alternates instead"
+        },
+        {
+          "block": "Late Morning/Afternoon (11am-1pm)",
+          "type": "optional",
+          "activity": "Alt to resting: Din Tai Fung (lunch); Newton Food Centre — Kwang Kee Teochew Fish Porridge, Alliance Seafood; GoCycling Marina Bay loop; Tiong Bahru Hainanese Boneless Chicken Rice (Takashimaya)",
+          "cluster": "Marina Bay / Orchard-Newton"
+        },
+        {
+          "block": "Afternoon (2:30-5:30pm)",
+          "type": "optional",
+          "activity": "1-Arden Sky Garden (CapitaSpring, Level 51) — BOOKED for 2 guests",
+          "cluster": "Raffles Place/CapitaSpring",
+          "notes": "Now a real held reservation for both of you, 2:30-5:30pm — DIRECTLY OVERLAPS existing Musts (ArtScience 2-4pm, Sands/Sampan/Cloud Forest 4-7pm). This needs an active decision, not a squeeze-in: either drop/shorten ArtScience and Sands/Sampan/Cloud Forest for this window, or this booking effectively can't be used as planned. CHECK for a duplicate 1-guest reservation made minutes earlier under the same SevenRooms account and cancel if present",
+          "urlKeys": [
+            "1-arden-sky-garden"
+          ]
+        },
+        {
+          "block": "Late Afternoon (2-4pm)",
+          "type": "must",
+          "activity": "BEFORE entering: sign up Sands LifeStyle (free) via Marina Bay Sands mobile app → ArtScience Museum, teamLab Future World + Digital Light Canvas combo (Mon-Thu rate SGD24/pax, 30% off with Sands LifeStyle = SGD16.80/pax)",
+          "cluster": "Marina Bay",
+          "notes": "One signup, two benefits: 30% off ArtScience here AND the free Sampan Ride claim below. Download MBS app + register BEFORE buying the ArtScience ticket, discount won't apply retroactively. Open 10am-7pm (till 9pm Fri/Sat). Indoor = good heat-break slot",
+          "urlKeys": [
+            "artscience-museum"
+          ],
+          "tipKeys": [
+            "artscience-ticketing",
+            "sands-lifestyle-signup"
+          ]
+        },
+        {
+          "block": "Late Afternoon/Early Evening",
+          "type": "optional",
+          "activity": "Scuderia Ferrari F1 car display, MBS Tower 1 lobby — free walk-through",
+          "cluster": "Marina Bay",
+          "notes": "Zero extra transit — same building as ArtScience/Sands LifeStyle counter/Sampan Ride, 5-10min detour. Running Sep14-Oct12, covers your whole visit. Squeeze in between the ArtScience and Sampan blocks",
+          "urlKeys": [
+            "f1-ferrari-display"
+          ]
+        },
+        {
+          "block": "Early Evening (4-7pm)",
+          "type": "must",
+          "activity": "Sands LifeStyle counter (already registered — just claim free Sampan ticket) → Sampan Ride (MBS) → walk 8-10min → Cloud Forest + Flower Dome → Lunch — Satay by the Bay",
+          "cluster": "Marina Bay",
+          "notes": "Sampan before Cloud Forest, walking distance confirmed. Functions as a late lunch/early dinner given the shifted slot — light portion, PS.Cafe dinner still follows ~8:15pm",
+          "urlKeys": [
+            "sands-lifestyle",
+            "sampan-ride",
+            "cloud-forest",
+            "satay-by-the-bay"
+          ],
+          "tipKeys": [
+            "sampan-free-hack"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "OCBC Skyway (~7:30pm) → Garden Rhapsody, 7:45pm show, watched from the Skyway itself",
+          "cluster": "Marina Bay",
+          "notes": "LOCKED sequence — single Garden Rhapsody viewing only",
+          "urlKeys": [
+            "ocbc-skyway",
+            "garden-rhapsody"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Walk to Marina Bay (~10min, arrive ~8:10pm) → Dinner — PS.Cafe, One Fullerton, 8:15-8:50pm",
+          "cluster": "Marina Bay",
+          "notes": "FIXED: dinner moved before Spectra — PS.Cafe last order 9pm",
+          "urlKeys": [
+            "ps-cafe"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Spectra, 9pm show, watched from Event Plaza",
+          "cluster": "Marina Bay",
+          "notes": "Event Plaza confirmed top pick, dinner already done",
+          "urlKeys": [
+            "spectra"
+          ]
+        },
+        {
+          "block": "Night (18:00-22:00)",
+          "type": "optional",
+          "activity": "1-Arden Sky Garden (CapitaSpring, Level 51) — BOOKED backup slot, 2 guests",
+          "cluster": "Raffles Place/CapitaSpring",
+          "notes": "Backup slot, booked same day as the Sep21 primary. Directly overlaps OCBC Skyway/Garden Rhapsody (~7:30-7:45pm), PS.Cafe dinner (8:15-8:50pm), and Spectra (9pm) — realistically unusable unless the Sep21 visit fell through and this replaces tonight's Marina Bay evening sequence instead",
+          "urlKeys": [
+            "1-arden-sky-garden"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "Level 33 or One Altitude (Raffles Place rooftop); Marina Barrage (parked golden-hour alt)",
+          "cluster": "Raffles Place / Marina Bay",
+          "notes": "Reference only, not scheduled"
+        },
+        {
+          "block": "Late Night",
+          "type": "must",
+          "activity": "Roam Clarke Quay/Boat Quay",
+          "cluster": "Clarke Quay",
+          "notes": "Short walk from Marina Bay"
+        },
+        {
+          "block": "Late Night",
+          "type": "optional",
+          "activity": "Lau Pa Sat satay street",
+          "cluster": "Raffles Place",
+          "notes": "Opens 7pm"
+        }
+      ]
+    },
+    {
+      "date": "Wed Sep23",
+      "day": "Day3",
+      "city": "SIN",
+      "blocks": [
+        {
+          "block": "Morning",
+          "type": "must",
+          "activity": "Breakfast near hotel → Sentosa Express/Cable Car in → USS entry, 3-4hrs — major rides + photo stops + chill rides mixed",
+          "cluster": "Sentosa",
+          "notes": "Apply saved ride order — Transformers first",
+          "urlKeys": [
+            "uss"
+          ],
+          "tipKeys": [
+            "uss-ride-order"
+          ]
+        },
+        {
+          "block": "Morning",
+          "type": "optional",
+          "activity": "Breakfast/coffee at Google Singapore office (Mapletree Business City, Pasir Panjang — badge access) instead of near-hotel breakfast",
+          "cluster": "HarbourFront/Pasir Panjang",
+          "notes": "Cafe 'Shiok' — breakfast+lunch only, no dinner, weekday-only. Day3 is Wed, fits service hours. 1-2 Circle Line stops from HarbourFront, on the way to Sentosa anyway — swap-in for the Must breakfast above if wanted, not required",
+          "urlKeys": [
+            "google-sg-office"
+          ]
+        },
+        {
+          "block": "Morning",
+          "type": "optional",
+          "activity": "Toast Box/Ya Kun at VivoCity/HarbourFront",
+          "cluster": "HarbourFront"
+        },
+        {
+          "block": "Afternoon",
+          "type": "must",
+          "activity": "Lunch (USS or nearby) → relax break",
+          "cluster": "Sentosa",
+          "notes": "HyperDrive REMOVED — moved to Day5 as Lalaspeed E Kart Raceway (KL, ~40-50% cheaper, zero extra transit at LaLaport Bukit Bintang)"
+        },
+        {
+          "block": "Afternoon",
+          "type": "optional",
+          "activity": "Eat outside USS gate (Beach Station area) — cheaper",
+          "cluster": "Sentosa"
+        },
+        {
+          "block": "Afternoon/Evening",
+          "type": "must",
+          "activity": "Skyline Luge, BOOKED 4 Ride Combo Peak, RESCHEDULED AGAIN to 16:00 (venue-initiated — early closure Sep23 for a private event), plus 2 complimentary 1-Ride tickets added",
+          "cluster": "Sentosa",
+          "notes": "Skyline Luge closes early Sep23 for a private event, moved us from 17:00 to 16:00 at their initiative (not our request) — Express upgrade unavailable off-season, compensated with 2 free extra single-ride tickets instead. Use the 2 free rides to fill the 16:00-session-end to ~18:00 gap before Palawan Beach, or skip them if not wanted. Palawan Beach walk (18:00-19:10) still lands at golden hour regardless of the earlier Luge start",
+          "urlKeys": [
+            "skyline-luge"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Palawan Beach walk (golden hour, photo), ~18:00-19:10",
+          "cluster": "Sentosa",
+          "notes": "Restored — ends right at sunset for best light",
+          "urlKeys": [
+            "palawan-beach"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "optional",
+          "activity": "S.E.A. Aquarium/Oceanarium",
+          "cluster": "Sentosa",
+          "notes": "Only if other blocks run short"
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Wings of Time (7:40pm show, target arrival ~7:10-7:20pm, ~20-25min show) → Dinner — Good Old Days Buffet (already paid, part of the booked combo), ~8:10-9:00pm, last order 9pm → Cable Car back to HarbourFront (night skyline)",
+          "cluster": "Sentosa → HarbourFront",
+          "notes": "CORRECTED — earlier draft wrongly listed a separate VivoCity dinner, missing that Good Old Days Buffet dinner is already included/paid in the Wings of Time booking (Standard + Good Old Days Buffet, ₹4,478 for 2). Buffet hours 17:00-22:00, last order 21:00 — eat right after the show, no extra cost, no need for VivoCity dinner. Comfortable buffer restored after 5pm Luge reschedule. Cable car last boarding 9:30pm",
+          "urlKeys": [
+            "wings-of-time"
+          ],
+          "tipKeys": [
+            "wings-of-time-buffet"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "VivoCity browse or Tekka Centre — only if genuinely hungry again or want dessert/shopping after the buffet",
+          "cluster": "HarbourFront / Little India",
+          "notes": "Dinner already covered by Good Old Days Buffet — this is a browse/snack option only, not a second dinner. Tekka Centre closes 9pm, unreliable arrival anyway"
+        }
+      ]
+    },
+    {
+      "date": "Thu Sep24",
+      "day": "Day4",
+      "city": "SIN",
+      "blocks": [
+        {
+          "block": "Morning",
+          "type": "must",
+          "activity": "East Coast Park cycling, 3-4hrs → return hotel, rest/shower → Checkout, bags at reception",
+          "cluster": "East Coast Park → Little India/Rochor",
+          "urlKeys": [
+            "ecp-cycling"
+          ]
+        },
+        {
+          "block": "Morning",
+          "type": "optional",
+          "activity": "Ya Kun Kaya Toast (post-cycling breakfast)",
+          "cluster": "Little India/Rochor"
+        },
+        {
+          "block": "Afternoon",
+          "type": "must",
+          "activity": "Chinatown exploration (photo spots) → Lunch — Maxwell Food Centre (Tian Tian chicken rice) → Orchard Road + malls",
+          "cluster": "Chinatown → Orchard",
+          "urlKeys": [
+            "maxwell-food-centre"
+          ]
+        },
+        {
+          "block": "Afternoon",
+          "type": "optional",
+          "activity": "Song Fa, Darkness Dessert, Newspaper Photo Booth, Heritage Starbucks (37 Smith St); Haji Lane (if not done Day1); Ann Chin Popiah, Fatty Ox HK Kitchen, J2 Famous Crispy Curry Puff, Hokkien St Bak Kut Teh, People's Park Hainanese Chicken Rice",
+          "cluster": "Chinatown / Kampong Glam",
+          "notes": "Lian He Ben Ji Clay Pot Rice is dinner-only — skip, dinner is now Marina Bay/Gardens"
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Water B Light Show Cruise, Fort Canning/Clarke Quay kiosk — redeem ticket by 7:15pm, board 7:30pm (60min) → Spectra viewed from the boat (hovers during show) → disembark ~8:30pm",
+          "cluster": "Clarke Quay",
+          "notes": "REVISED after audit: plain bumboat river cruise is a fixed round-trip to Clarke Quay, and guided combo tours (CYT/OMNICITY/Wandoras) all watch Spectra from land, not water — this Water B product is the only confirmed on-water option. Non-refundable, no reservation needed but arrive 15min early",
+          "urlKeys": [
+            "river-cruise"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Grab (not walk) from Clarke Quay to Gardens by the Bay, ~10-12min → Garden Rhapsody, 8:45pm show, Central Lawn",
+          "cluster": "Clarke Quay → Marina Bay",
+          "notes": "TIGHT: arrive ~8:40-8:45pm. Confirm Grab availability at that hour before relying on it — this is the residual risk in the DIY plan"
+        },
+        {
+          "block": "Evening",
+          "type": "optional",
+          "activity": "Kallang otters (opportunistic)",
+          "cluster": "Marina Bay/Kallang"
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Dinner — Marina Bay/Gardens area (e.g. Satay by the Bay again, or nearby hawker)",
+          "cluster": "Marina Bay",
+          "notes": "FIXED: Brewerkz had unaccounted transit + 9:30pm last-call risk"
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "Brewerkz, Riverside Point — only if genuinely ahead of schedule",
+          "cluster": "Clarke Quay",
+          "notes": "Downgraded from Must, real timing risk if pursued"
+        },
+        {
+          "block": "Late Night",
+          "type": "must",
+          "activity": "Return to Little India/Rochor, collect bags → walk to Bugis MRT Exit D pickup point → board bus",
+          "cluster": "Marina Bay → Little India/Rochor → Bugis",
+          "notes": "Wrap by ~22:00-22:30. Bus departs 00:30 (dated 25 Sep)"
+        },
+        {
+          "block": "Late Night",
+          "type": "optional",
+          "activity": "Joo Chiat/Katong (parked)",
+          "cluster": "Joo Chiat",
+          "notes": "Only if ahead of schedule"
+        }
+      ]
+    },
+    {
+      "date": "Fri Sep25",
+      "day": "Day5",
+      "city": "KUL",
+      "blocks": [
+        {
+          "block": "Early Morning",
+          "type": "must",
+          "activity": "Arrive LaLaport (~06:00-07:00) → 5min walk (0.4km) to Hotel Royal Signature → drop luggage at reception",
+          "cluster": "Bukit Bintang",
+          "notes": "Room not ready — 3PM check-in"
+        },
+        {
+          "block": "Morning",
+          "type": "must",
+          "activity": "KLCC-Bukit Bintang Walkway (~15min, covered/aircon) → KLCC Park + Petronas exterior photos (pre-crowd) → Breakfast with a view near the towers",
+          "cluster": "Bukit Bintang → KLCC"
+        },
+        {
+          "block": "Morning",
+          "type": "optional",
+          "activity": "Ombak KLCC quick browse (Rooftop Sky Garden L7 or Galeri PETRONAS L3), 20-30min",
+          "cluster": "KLCC",
+          "notes": "Brand new (opened Aug26), likely uncrowded",
+          "urlKeys": [
+            "ombak-klcc"
+          ]
+        },
+        {
+          "block": "Late Morning",
+          "type": "must",
+          "activity": "Transit to Petaling St (~10-15min) → Merdeka Square → Central Market → hidden mural (Merdeka 118 photo) → Kwai Chai Hong",
+          "cluster": "Petaling St/Chinatown KL",
+          "urlKeys": [
+            "merdeka-square",
+            "central-market",
+            "hidden-mural",
+            "kwai-chai-hong"
+          ]
+        },
+        {
+          "block": "Late Morning",
+          "type": "optional",
+          "activity": "Taman Tugu Forest Trail (short loop, 30min-1hr)",
+          "cluster": "Near Merdeka Square/Parliament House",
+          "notes": "Only if block runs ahead of schedule"
+        },
+        {
+          "block": "Midday",
+          "type": "must",
+          "activity": "Lunch — Lai Foong Lala Noodles",
+          "cluster": "Petaling St",
+          "urlKeys": [
+            "lai-foong"
+          ]
+        },
+        {
+          "block": "Early Afternoon",
+          "type": "must",
+          "activity": "Transit back to LaLaport Bukit Bintang (~10-15min) → Lalaspeed E Kart Raceway (Level 5, ~45-60min session) → Check-in at 3PM",
+          "cluster": "Petaling St → Bukit Bintang",
+          "notes": "MOVED from Day3 HyperDrive Sentosa — ~40-50% cheaper (RM65-75/pax vs SGD40-55/race), zero extra transit since Lalaspeed is in the same mall as the hotel/bus dropoff. Opens 11:30am weekday, confirm session fits before 3PM check-in. Pool early-access request sent to hotel, pending",
+          "urlKeys": [
+            "lalaspeed-karting"
+          ]
+        },
+        {
+          "block": "Afternoon",
+          "type": "must",
+          "activity": "Hotel rooftop pool, 15:00-17:45 (Merdeka 118 view, free)",
+          "cluster": "Bukit Bintang",
+          "notes": "Trimmed 15min off original 18:00 end to make the 18:15 Skybridge check-in — pool closes 6PM anyway"
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Quick shower/change → transit to KLCC (~10-15min) → Petronas Skybridge, Sky Xperience Evening Experience, BOOKED 18:30 entry (check-in by 18:15)",
+          "cluster": "Bukit Bintang → KLCC",
+          "notes": "BOOKED — confirmation codes [ref] & [ref]. Non-refundable, non-transferable. Timed for sunset (~7:27pm) transition — arrive-by-18:15 to 18:30 entry, ~45-60min visit carries through dusk into night-lit skyline. No dress code (Priority Access only)",
+          "urlKeys": [
+            "petronas-skybridge"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "optional",
+          "activity": "Bukit Bintang exploration — malls (Pavilion, Fahrenheit 88), Q Pocket, casual snacks (32 Parfait, Istanbul Bites, Damascus Shawarma)",
+          "cluster": "Bukit Bintang",
+          "notes": "Dropped from Must — no slot left after Skybridge move. Squeeze in only if genuinely ahead of schedule",
+          "urlKeys": [
+            "q-pocket"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Dinner nearby (Bukit Bintang or KLCC) → sleep",
+          "cluster": "Bukit Bintang",
+          "notes": "Later than originally planned 'early dinner/sleep' due to Skybridge move — still workable but less buffer before Batu Caves early start"
+        }
+      ]
+    },
+    {
+      "date": "Sat Sep26",
+      "day": "Day6",
+      "city": "KUL",
+      "blocks": [
+        {
+          "block": "Midday",
+          "type": "must",
+          "activity": "Checkout by 12pm, bags at reception — PACK SWIMWEAR/TOWEL IN A SEPARATE DAY BAG before checkout (won't return to hotel before the pool slot)",
+          "cluster": "Bukit Bintang",
+          "notes": "REVISED — late-night arrival changed the plan. Checkout-time start instead of early-morning Batu Caves run."
+        },
+        {
+          "block": "Midday",
+          "type": "must",
+          "activity": "Grab to Batu Caves (~30-40min) → Batu Caves (272 steps, compressed visit — main cave only, skip deep exploration)",
+          "cluster": "Batu Caves",
+          "notes": "Midday sun, not the cool pre-dawn slot — bring water, sunscreen, hat. Zip bags (monkeys), modest dress for temple area. Keep tight to protect the 3pm pool slot.",
+          "urlKeys": [
+            "batu-caves"
+          ]
+        },
+        {
+          "block": "Afternoon",
+          "type": "must",
+          "activity": "Grab direct from Batu Caves to KLCC/W KL (~30-40min) — skip returning to hotel first",
+          "cluster": "Batu Caves → KLCC"
+        },
+        {
+          "block": "Afternoon/Evening",
+          "type": "must",
+          "activity": "W KL rooftop pool, BOOKED 15:00 slot, till 19:00 close (Petronas view, MYR100 total paid; 'Sunset Chasers' 5-7pm = golden hour built in)",
+          "cluster": "KLCC (Jalan Ampang)",
+          "notes": "Change into swimwear at pool changing rooms. Smart Casual dress code enforced after. No cancellation/refund.",
+          "urlKeys": [
+            "w-kl-pool"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Ombak KLCC — Rooftop Sky Garden (L7), Pokemon Center, dinner at Minamo Ramen / SANG Seafood / Oriental Kopi",
+          "cluster": "KLCC",
+          "notes": "Walkable from W KL. Absorbs the dinner slot — NZ Curry House dropped.",
+          "urlKeys": [
+            "ombak-klcc"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Rest/buffer — sit down and decompress before the transit back",
+          "cluster": "KLCC",
+          "notes": "Protects against fatigue from the late-night arrival + packed compressed day"
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Grab to Bukit Bintang (~15-20min) → collect bags from hotel reception → shopping at Pavilion Mall / Fahrenheit 88",
+          "cluster": "KLCC → Bukit Bintang",
+          "notes": "Real Bukit Bintang shopping slot (dropped from Day5) — Royal Selangor pewter/batik/Ipoh white coffee/Boh tea also worth grabbing if passing a KLCC souvenir shop earlier at Suria KLCC or Ombak KLCC"
+        },
+        {
+          "block": "Night",
+          "type": "optional",
+          "activity": "32 Parfait (ice cream) or Jamboo Cafe (hole-in-wall matcha photo-op, monster-hand through pink wall) — quick snack in Bukit Bintang",
+          "cluster": "Bukit Bintang",
+          "notes": "Only if genuinely ahead of schedule before 9:30pm hotel departure. Jamboo's 'no counter' framing is disputed in reviews — there's a normal counter too, wall-hole is a photo gimmick, not the sole ordering method. Skip if running tight."
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Depart hotel for TBS by 10:00pm",
+          "cluster": "Bukit Bintang → TBS",
+          "notes": "Shifted from 9:30pm to free up a real Bukit Bintang shopping window — still a 2+ hour buffer before 00:15 boarding, safe"
+        },
+        {
+          "block": "Late Night",
+          "type": "must",
+          "activity": "Board bus, TBS, 00:15 (dated 27 Sep), Cosmic Singapore Express",
+          "cluster": "TBS",
+          "notes": "Confirmed booking, seats 5B+5C, [ref]"
+        }
+      ]
+    },
+    {
+      "date": "Sun Sep27",
+      "day": "Day7",
+      "city": "SIN",
+      "blocks": [
+        {
+          "block": "Early Morning",
+          "type": "must",
+          "activity": "Arrive Boon Lay ~05:27 → transit toward city (~40-50min, East-West MRT line)",
+          "cluster": "Boon Lay → City",
+          "notes": "Transit time not precisely verified"
+        },
+        {
+          "block": "Morning",
+          "type": "must",
+          "activity": "Breakfast — Newton Food Centre or Toast Box",
+          "cluster": "Orchard/Newton",
+          "urlKeys": [
+            "newton-food-centre",
+            "toast-box"
+          ]
+        },
+        {
+          "block": "Late Morning/Afternoon",
+          "type": "must",
+          "activity": "Orchard Road shopping → Mustafa Centre",
+          "cluster": "Orchard → Little India",
+          "urlKeys": [
+            "mustafa-centre"
+          ]
+        },
+        {
+          "block": "Late Morning/Afternoon",
+          "type": "optional",
+          "activity": "Changi budget canteens for lunch instead of a city meal",
+          "cluster": "Changi Airport",
+          "notes": "If heading to airport earlier"
+        },
+        {
+          "block": "Afternoon",
+          "type": "must",
+          "activity": "Head to Changi T2, arrive ~15:30 (landside)",
+          "cluster": "Orchard/Little India → Changi",
+          "notes": "Fixed sequencing: Jewel is landside, everything after check-in is airside — corrected order below (was wrongly listing lounge before check-in)"
+        },
+        {
+          "block": "Afternoon",
+          "type": "must",
+          "activity": "Jewel Changi (Rain Vortex), 15:30-16:30 (~45-60min)",
+          "cluster": "Changi Airport",
+          "notes": "Rain Vortex open 10am-10pm — 45-60min is enough per general visitor guidance. Moved here from Day1",
+          "urlKeys": [
+            "jewel-changi"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Check-in, 16:30-17:00 (~30min)",
+          "cluster": "Changi Airport",
+          "notes": "Check-in closes 18:30 — this leaves a wide buffer"
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Immigration + Security, 17:00-17:30 (~30min)",
+          "cluster": "Changi Airport",
+          "notes": "Now airside"
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "SATS Premier Lounge, T2, 17:30-18:15 (~45min) — free entry via HDFC Diners Club Black, shower + freshen up",
+          "cluster": "Changi Airport",
+          "notes": "Solves no-hotel-room freshen-up gap. Lounge max stay 3hrs per Priority Pass T&C — 45min is plenty for a shower, not maxing the stay. Verify guest policy for Prabha before relying on it — backup: ICICI Sapphiro Priority Pass (2 comp visits)",
+          "urlKeys": [
+            "sats-premier-lounge"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "must",
+          "activity": "Tax-free shopping — Charles & Keith, Bacha Coffee, Apple, 18:15-18:50 (~35min) → claim GST refund at eTRS kiosk, 18:50-19:10 (~20min, 9% over SGD100)",
+          "cluster": "Changi Airport",
+          "notes": "GST refund needs an eTRS kiosk stop before boarding — build in the ~20-30min per Singapore Customs guidance, not an afterthought",
+          "urlKeys": [
+            "charles-keith",
+            "bacha-coffee"
+          ]
+        },
+        {
+          "block": "Evening",
+          "type": "optional",
+          "activity": "T2 airside free stops if time remains before boarding: Dreamscape (immersive garden, digital sky/light/sound show, Transit Level 2), Orchid Garden, Sunflower Garden (rooftop, runway view), Calm Room (quiet space, Transit Level 2)",
+          "cluster": "Changi Airport",
+          "notes": "All confirmed airside/transit-area accessible, no extra security clearance needed since already past security. Squeeze in only if ahead of the 19:15-19:20 gate target",
+          "tipKeys": [
+            "changi-t2-attractions"
+          ]
+        },
+        {
+          "block": "Night",
+          "type": "must",
+          "activity": "Proceed to gate, flight SIN→DEL, 19:45",
+          "cluster": "Changi Airport",
+          "notes": "[ref] — gate by ~19:15-19:20"
+        }
+      ]
+    }
+  ]
+}

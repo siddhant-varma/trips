@@ -1,0 +1,377 @@
+{
+  "lastChecked": "Sep 15, 2026",
+  "overview": "REAL forecast pulled Sep21 2026 (departure day): Day4 (Sep24) now wettest at 89%, Day3 (Sep23) close behind at 84% — both overtake earlier climate-normal estimates. Day1 (77%) also higher than prior 63% estimate. Day5-6 (KL) unchanged, this pull was SG-only. Day7 safest — almost entirely indoor.",
+  "criticalBookings": [
+    {
+      "id": "luge",
+      "name": "Skyline Luge",
+      "day": "Day3",
+      "time": "17:00",
+      "risk": "CRITICAL",
+      "action": "Check live radar (myENV) that morning. If storms active at 16:00, call venue immediately — they've rescheduled once already. Ask for reschedule or refund, don't no-show.",
+      "urlKey": "skyline-luge"
+    },
+    {
+      "id": "wings",
+      "name": "Wings of Time",
+      "day": "Day3",
+      "time": "19:40",
+      "risk": "CRITICAL",
+      "action": "Check Sentosa show-status page / RWS social media same evening before heading over. If cancelled, ask Klook/RWS about 20:40 show or refund.",
+      "urlKey": "wings-of-time"
+    },
+    {
+      "id": "cruise",
+      "name": "Water B Light Show Cruise",
+      "day": "Day4",
+      "time": "19:30",
+      "risk": "HIGH",
+      "action": "Walk-up only — do NOT buy if active lightning/heavy rain at 19:15. Ask kiosk staff about weather policy before paying. Non-refundable once bought.",
+      "urlKey": "river-cruise"
+    },
+    {
+      "id": "cable-car",
+      "name": "Cable Car (return transit)",
+      "day": "Day3",
+      "time": "evening",
+      "risk": "HIGH",
+      "action": "If suspended for lightning/wind, use Sentosa Express (train) instead as primary backup. Monitor cable car status boards before queuing.",
+      "urlKey": "cable-car"
+    },
+    {
+      "id": "pool-day5",
+      "name": "Hotel Pool (Day5)",
+      "day": "Day5",
+      "time": "before Petronas",
+      "risk": "HIGH",
+      "action": "Pools close during lightning. Ask staff to extend your access window once reopened — most hotels honor this. Don't silently accept the loss.",
+      "urlKey": "w-kl-pool"
+    },
+    {
+      "id": "pool-day6",
+      "name": "W KL Rooftop Pool",
+      "day": "Day6",
+      "time": "15:00",
+      "risk": "HIGH",
+      "action": "Booked, non-refundable. Same lightning-closure risk. Ask for window extension if disrupted.",
+      "urlKey": "w-kl-pool"
+    }
+  ],
+  "days": [
+    {
+      "day": "Day1",
+      "date": "Mon Sep21",
+      "city": "SIN",
+      "overallRisk": "MEDIUM",
+      "blocks": [
+        {
+          "activity": "Land / check-in / Zam Zam dinner",
+          "risk": "LOW",
+          "type": "Indoor/covered"
+        },
+        {
+          "activity": "1-Arden Sky Garden",
+          "risk": "HIGH",
+          "type": "Outdoor rooftop",
+          "note": "Venue T&C allows closure without notice. Free — no financial loss if shut. Real forecast now shows 77% rain chance on arrival day — treat as likely, not just possible.",
+          "urlKey": "1-arden-sky-garden"
+        },
+        {
+          "activity": "Marina Bay walk",
+          "risk": "MEDIUM",
+          "type": "Outdoor",
+          "note": "Optional, easily skippable."
+        }
+      ],
+      "note": "REAL FORECAST (Sep21 pull): 77% rain chance, 33°C/27°C — higher than the earlier 63% estimate. Arrival-day outdoor plans (1-Arden evening) carry more real risk than previously thought."
+    },
+    {
+      "day": "Day2",
+      "date": "Tue Sep22",
+      "city": "SIN",
+      "overallRisk": "MEDIUM-HIGH",
+      "blocks": [
+        {
+          "activity": "Anywheel cycling",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Optional — skip on any rain signal."
+        },
+        {
+          "activity": "Fort Canning / Tree Tunnel",
+          "risk": "MEDIUM-HIGH",
+          "type": "Mixed",
+          "note": "Toast Box indoor, park outdoor. No built-in swap."
+        },
+        {
+          "activity": "ArtScience Museum",
+          "risk": "LOW",
+          "type": "Indoor",
+          "note": "Your best rain-day anchor Day2."
+        },
+        {
+          "activity": "Sampan Ride",
+          "risk": "LOW",
+          "type": "Indoor (Shoppes canal)",
+          "note": "CORRECTED: this is the indoor Sampan Ride inside The Shoppes at MBS, sheltered canal circling the Rain Oculus — not exposed to weather. Safe/good option during rain."
+        },
+        {
+          "activity": "Cloud Forest + Flower Dome",
+          "risk": "LOW",
+          "type": "Indoor dome"
+        },
+        {
+          "activity": "OCBC Skyway + Garden Rhapsody",
+          "risk": "HIGH",
+          "type": "Outdoor elevated",
+          "note": "Lightning safety concern — exposed height. Show can pause in rain.",
+          "urlKey": "ocbc-skyway"
+        },
+        {
+          "activity": "Spectra",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Show suspended in heavy rain or lightning."
+        }
+      ],
+      "note": "REAL FORECAST (Sep21 pull): 70% rain chance, 32°C/26°C."
+    },
+    {
+      "day": "Day3",
+      "date": "Wed Sep23",
+      "city": "SIN",
+      "overallRisk": "CRITICAL",
+      "note": "REAL FORECAST (Sep21 pull): 84% rain chance, 32°C/26°C — still very high, though Day4 now edges it out.",
+      "blocks": [
+        {
+          "activity": "USS",
+          "risk": "MEDIUM-HIGH",
+          "type": "Mixed",
+          "note": "Park stays open; individual rides can pause for lightning holds.",
+          "urlKey": "uss"
+        },
+        {
+          "activity": "Skyline Luge",
+          "risk": "CRITICAL",
+          "type": "Outdoor open-air",
+          "note": "Suspended for rain/lightning. Biggest financial + scheduling exposure.",
+          "urlKey": "skyline-luge"
+        },
+        {
+          "activity": "Palawan Beach walk",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Zero cost — just skip/shorten."
+        },
+        {
+          "activity": "Wings of Time",
+          "risk": "CRITICAL",
+          "type": "Outdoor beach show",
+          "note": "Cancelled in heavy rain or lightning. Non-refundable.",
+          "urlKey": "wings-of-time"
+        },
+        {
+          "activity": "Cable Car",
+          "risk": "HIGH",
+          "type": "Outdoor gondola",
+          "note": "Suspended during lightning/high wind. Use Sentosa Express as backup.",
+          "urlKey": "cable-car"
+        },
+        {
+          "activity": "S.E.A. Aquarium",
+          "risk": "LOW",
+          "type": "Indoor",
+          "note": "Best rain-day backup for Day3 — fully indoor, already on Sentosa."
+        }
+      ]
+    },
+    {
+      "day": "Day4",
+      "date": "Thu Sep24",
+      "city": "SIN",
+      "overallRisk": "HIGH",
+      "blocks": [
+        {
+          "activity": "ECP cycling",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Unsafe wet cycling. Zero financial cost to skip.",
+          "urlKey": "ecp-cycling"
+        },
+        {
+          "activity": "Maxwell Food Centre",
+          "risk": "LOW-MEDIUM",
+          "type": "Semi-open hawker"
+        },
+        {
+          "activity": "Water B Light Show Cruise",
+          "risk": "HIGH",
+          "type": "Outdoor boat",
+          "note": "Walk-up — don't buy if active lightning. Ask before paying.",
+          "urlKey": "river-cruise"
+        },
+        {
+          "activity": "Garden Rhapsody",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Free show — can pause in lightning."
+        }
+      ],
+      "note": "REAL FORECAST (Sep21 pull): 89% rain chance, 32°C/26°C — now the single wettest day of the trip, overtaking Day3."
+    },
+    {
+      "day": "Day5",
+      "date": "Fri Sep25",
+      "city": "KUL",
+      "overallRisk": "MEDIUM",
+      "blocks": [
+        {
+          "activity": "Petaling St / Merdeka Sq / Central Market",
+          "risk": "MEDIUM-HIGH",
+          "type": "Outdoor street",
+          "note": "Central Market has indoor sections as fallback."
+        },
+        {
+          "activity": "Lalaspeed karting",
+          "risk": "LOW",
+          "type": "Indoor (mall L5)",
+          "note": "Mall-based — not rain-exposed despite feeling outdoor."
+        },
+        {
+          "activity": "Hotel rooftop pool",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Closes during lightning. Time-fixed before Petronas."
+        },
+        {
+          "activity": "Petronas Skybridge",
+          "risk": "LOW",
+          "type": "Indoor/enclosed",
+          "note": "Enclosed bridge — genuinely low risk. Most expensive booking.",
+          "urlKey": "petronas-skybridge"
+        }
+      ]
+    },
+    {
+      "day": "Day6",
+      "date": "Sat Sep26",
+      "city": "KUL",
+      "overallRisk": "MEDIUM-HIGH",
+      "blocks": [
+        {
+          "activity": "Batu Caves",
+          "risk": "MEDIUM-HIGH",
+          "type": "Outdoor steps",
+          "note": "Slippery steps in rain. Zip bags against monkeys regardless.",
+          "urlKey": "batu-caves"
+        },
+        {
+          "activity": "ARAS Restaurant",
+          "risk": "LOW",
+          "type": "Indoor revolving",
+          "note": "Good rain-day anchor."
+        },
+        {
+          "activity": "W KL Rooftop Pool",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Booked, non-refundable. Ask for window extension if disrupted.",
+          "urlKey": "w-kl-pool"
+        },
+        {
+          "activity": "Saloma Link + Lake Symphony",
+          "risk": "HIGH",
+          "type": "Outdoor",
+          "note": "Fountain show can pause in heavy rain."
+        }
+      ]
+    },
+    {
+      "day": "Day7",
+      "date": "Sun Sep27",
+      "city": "SIN",
+      "overallRisk": "LOW",
+      "note": "REAL FORECAST (Sep21 pull): 31°C/26°C, rain % not shown in this pull — recheck closer to Sep27.",
+      "blocks": [
+        {
+          "activity": "Orchard / Mustafa shopping",
+          "risk": "LOW",
+          "type": "Indoor malls"
+        },
+        {
+          "activity": "Jewel Changi (Rain Vortex)",
+          "risk": "LOW",
+          "type": "Indoor dome",
+          "note": "Indoor attraction — unaffected by outside rain. Ironically named."
+        },
+        {
+          "activity": "Airport sequence",
+          "risk": "LOW",
+          "type": "Indoor"
+        }
+      ]
+    }
+  ],
+  "indoorFallbacks": [
+    {
+      "day": "Day3",
+      "option": "S.E.A. Aquarium",
+      "note": "Promote to primary if Luge/outdoor items get cancelled. Fully indoor, already on Sentosa."
+    },
+    {
+      "day": "Day2/Day4",
+      "option": "ArtScience Museum + Cloud Forest/Flower Dome",
+      "note": "Strongest anchors for a wet day — absorb most time safely."
+    },
+    {
+      "day": "Day4",
+      "option": "Orchard Road malls",
+      "note": "Already a Must block — lean in harder if raining."
+    },
+    {
+      "day": "Day5",
+      "option": "Lalaspeed + Ombak KLCC + Central Market",
+      "note": "All indoor."
+    },
+    {
+      "day": "Day6",
+      "option": "ARAS Restaurant",
+      "note": "Linger longer if Batu Caves or pool get disrupted."
+    },
+    {
+      "day": "Day7",
+      "option": "Already all indoor",
+      "note": "No changes needed whatever the weather."
+    }
+  ],
+  "gear": [
+    "Poncho (not just umbrella) — frees hands for USS/Sentosa walking + photos",
+    "Waterproof phone pouch/dry bag — Sampan Ride, cable car, downpour photos",
+    "Spare socks in daypack — wet-shoe misery at Batu Caves + Sentosa",
+    "Check myENV app (SG) each morning Sep21-24 — live lightning alerts",
+    "Check MetMalaysia app each morning Sep25-26",
+    "Build 15-20min weather-check buffer before each of the 5 critical bookings"
+  ],
+  "weatherApps": [
+    {
+      "name": "myENV",
+      "use": "Singapore live lightning + thunderstorm alerts",
+      "url": "https://www.nea.gov.sg/our-services/weather"
+    },
+    {
+      "name": "haze.gov.sg",
+      "use": "Singapore haze / air quality index",
+      "url": "https://www.haze.gov.sg/"
+    },
+    {
+      "name": "MetMalaysia",
+      "use": "KL daily forecast",
+      "url": "https://www.met.gov.my/"
+    },
+    {
+      "name": "Windy",
+      "use": "Detailed radar overlay",
+      "url": "https://www.windy.com/"
+    }
+  ]
+}

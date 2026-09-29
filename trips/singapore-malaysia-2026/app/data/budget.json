@@ -1,0 +1,251 @@
+{
+  "ceiling": 155000,
+  "currency": "INR",
+  "fxNote": "Corrected [phone]: SGD→INR = 74.59, MYR→INR = 23.35 (live rates). Earlier line items had used stale ~62 SGD and ~18.5 MYR rates, understating costs ~20-26%. All SGD/MYR attraction costs below recomputed at correct rates.",
+  "buckets": [
+    {
+      "category": "Flights (DEL↔SIN RT)",
+      "amount": 60660,
+      "status": "booked"
+    },
+    {
+      "category": "Visa (SIN MEV)",
+      "amount": 6200,
+      "status": "booked"
+    },
+    {
+      "category": "Accommodation (SIN 3N + KUL 1N)",
+      "amount": 27261,
+      "status": "booked"
+    },
+    {
+      "category": "Inter-city Transport (buses)",
+      "amount": 8030,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions/Experiences",
+      "amountLow": 58794,
+      "amountHigh": 61595,
+      "status": "partial"
+    },
+    {
+      "category": "Food (7 days)",
+      "amountLow": 10000,
+      "amountHigh": 14000,
+      "status": "estimate"
+    },
+    {
+      "category": "Local Transport",
+      "amountLow": 5000,
+      "amountHigh": 7000,
+      "status": "estimate"
+    },
+    {
+      "category": "Shopping/Souvenirs",
+      "amountLow": 5000,
+      "amountHigh": 10000,
+      "status": "discretionary"
+    },
+    {
+      "category": "SIM/Forex/Misc",
+      "amountLow": 3000,
+      "amountHigh": 4000,
+      "status": "pending"
+    }
+  ],
+  "totalEstimateLow": 182395,
+  "totalEstimateHigh": 197096,
+  "lineItems": [
+    {
+      "category": "Flights & Visa",
+      "item": "IndiGo DEL↔SIN ([ref])",
+      "cost": 60660,
+      "status": "booked"
+    },
+    {
+      "category": "Flights & Visa",
+      "item": "Singapore MEV Visa",
+      "cost": 6200,
+      "status": "booked"
+    },
+    {
+      "category": "Accommodation",
+      "item": "Dash Living Rochor, SIN (3N)",
+      "cost": 22651,
+      "status": "booked"
+    },
+    {
+      "category": "Accommodation",
+      "item": "Hotel Royal Signature, KUL (1N)",
+      "cost": 4610,
+      "status": "booked"
+    },
+    {
+      "category": "Inter-city Transport",
+      "item": "KKKL Bus SIN→KUL",
+      "cost": 4850,
+      "status": "booked"
+    },
+    {
+      "category": "Inter-city Transport",
+      "item": "Cosmic Express Bus KUL→SIN",
+      "cost": 3180,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "OCBC Skyway",
+      "cost": 2089,
+      "status": "not-booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Cloud Forest + Flower Dome (Jurassic World included, Klook confirmed price)",
+      "cost": 4860,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Sampan Ride (free via hack, backup ~S$22-30/pax)",
+      "cost": 0,
+      "backupCost": 3282,
+      "status": "hack-unverified"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "USS (Normal Pass, Klook — confirmed live price)",
+      "cost": 10148,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Lalaspeed E Kart Raceway (KL, replaces HyperDrive Sentosa)",
+      "costLow": 3036,
+      "costHigh": 3502,
+      "status": "not-booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Skyline Luge (4 Ride Combo, Peak — all 4 tracks)",
+      "cost": 6713,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Wings of Time (Standard + Good Old Days Buffet, Klook confirmed price)",
+      "cost": 4478,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Cable Car SkyPass Premium + Singapore Sling bundle (booked, incl tax)",
+      "cost": 5594,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Petronas Skybridge (Evening Xperience, booked)",
+      "cost": 6398,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "KL Tower ARAS Restaurant lunch",
+      "costLow": 4670,
+      "costHigh": 7005,
+      "status": "not-booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "W KL Pool day pass",
+      "cost": 2335,
+      "status": "booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Water B Light Show Cruise",
+      "cost": 5967,
+      "status": "critical-not-booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "ArtScience Museum — Future World + Digital Light Canvas combo (Mon-Thu), with Sands LifeStyle 30% off — book direct, not Klook",
+      "cost": 2506,
+      "status": "not-booked"
+    },
+    {
+      "category": "Paid Attractions",
+      "item": "Lake Symphony, Saloma Link, Garden Rhapsody, Spectra",
+      "cost": 0,
+      "status": "free"
+    },
+    {
+      "category": "Food",
+      "item": "Hawker meals (majority of trip)",
+      "costLow": 7000,
+      "costHigh": 9000,
+      "status": "estimate"
+    },
+    {
+      "category": "Food",
+      "item": "Sit-down dinners (PS.Cafe, NZ Curry House)",
+      "costLow": 2000,
+      "costHigh": 3000,
+      "status": "estimate"
+    },
+    {
+      "category": "Food",
+      "item": "Snacks/casual (Jalan Alor, Bukit Bintang)",
+      "costLow": 1000,
+      "costHigh": 2000,
+      "status": "estimate"
+    },
+    {
+      "category": "Local Transport",
+      "item": "MRT/LRT/KTM (both cities)",
+      "costLow": 2500,
+      "costHigh": 3500,
+      "status": "estimate"
+    },
+    {
+      "category": "Local Transport",
+      "item": "Grab rides",
+      "costLow": 2000,
+      "costHigh": 3000,
+      "status": "estimate"
+    },
+    {
+      "category": "Local Transport",
+      "item": "Bus #124/190 (SIN scenic tour)",
+      "cost": 150,
+      "status": "estimate"
+    },
+    {
+      "category": "Shopping",
+      "item": "Mustafa Centre, Don Don Donki, souvenirs",
+      "costLow": 5000,
+      "costHigh": 10000,
+      "status": "discretionary"
+    },
+    {
+      "category": "Misc",
+      "item": "Singapore SIM",
+      "costLow": 800,
+      "costHigh": 1200,
+      "status": "pending"
+    },
+    {
+      "category": "Misc",
+      "item": "Forex/currency exchange fees",
+      "costLow": 1000,
+      "costHigh": 1500,
+      "status": "pending"
+    }
+  ],
+  "flags": [
+    "CRITICAL: FX rates corrected [phone] — previous line items used stale ~62 SGD and ~18.5 MYR conversion rates. Real rates (SGD 74.59, MYR 23.35) push total estimate from ~₹1.44-1.55L to ~₹1.78-1.95L — now meaningfully OVER the ₹1.55L ceiling even before all attractions are booked",
+    "Water B Light Show Cruise is entirely unbooked and unbudgeted-as-paid despite being load-bearing for Day4 evening sequence",
+    "Ceiling revision needed: either raise ceiling to ~₹1.85L or cut discretionary categories (Shopping, optional food) to compensate for the FX correction"
+  ]
+}

@@ -1,0 +1,329 @@
+{
+  "categories": [
+    "flights",
+    "hotels",
+    "transport",
+    "attractions",
+    "dining",
+    "admin"
+  ],
+  "bookings": [
+    {
+      "id": "flights-del-sin",
+      "item": "IndiGo Flights DEL ↔ SIN",
+      "short": "IndiGo DEL↔SIN",
+      "date": "Sep 21 & 27",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "flights",
+      "vouchers": [
+        "sep-21-flight-del-sin-return.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "hotel-sin",
+      "item": "Dash Living Rochor",
+      "short": "Hotel SIN · Sep 21–24",
+      "date": "Sep 21–24 (3N)",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "hotels",
+      "vouchers": [
+        "sep-21-hotel-dash-living-rochor.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "1-arden-sep21",
+      "item": "1-Arden Sky Garden — Sep 21",
+      "short": "1-Arden · Sep 21 evening",
+      "date": "Sep 21 · 18:00–22:00",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-21-1-arden-sky-garden-evening.pdf"
+      ],
+      "notes": "Timing risk — land 17:45, go direct from Changi if running behind",
+      "urlKeys": [
+        "1-arden-sky-garden"
+      ]
+    },
+    {
+      "id": "cloud-forest",
+      "item": "Cloud Forest + Flower Dome",
+      "short": "Gardens by the Bay · Sep 22",
+      "date": "Sep 22 · Day 2",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-22-cloud-forest-flower-dome.pdf"
+      ],
+      "urlKeys": [
+        "cloud-forest",
+        "sands-lifestyle",
+        "sampan-ride"
+      ]
+    },
+    {
+      "id": "grab-pass",
+      "item": "Grab Travel Pass",
+      "short": "Grab Travel Pass · Sep 22",
+      "date": "Sep 22",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "transport",
+      "vouchers": [
+        "sep-22-grab-travel-pass.pdf"
+      ],
+      "urlKeys": [
+        "anywheel-cycling"
+      ]
+    },
+    {
+      "id": "artscience",
+      "item": "ArtScience Museum",
+      "short": "ArtScience · Sep 22 · 14:00–16:00",
+      "date": "Sep 22 · 14:00–16:00",
+      "sortDate": "[phone]",
+      "status": "not-booked",
+      "category": "attractions",
+      "vouchers": [],
+      "notes": "Book after Sands LifeStyle signup",
+      "urlKeys": [
+        "artscience-museum"
+      ]
+    },
+    {
+      "id": "1-arden-sep22-eve",
+      "item": "1-Arden Sky Garden — Sep 22 Eve",
+      "short": "1-Arden · Sep 22 evening",
+      "date": "Sep 22 · 18:00–22:00",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-22-1-arden-sky-garden-evening.pdf"
+      ],
+      "notes": "Possible duplicate with Sep22 afternoon slot — verify & cancel one",
+      "urlKeys": [
+        "1-arden-sky-garden"
+      ]
+    },
+    {
+      "id": "uss",
+      "item": "Universal Studios Singapore",
+      "short": "USS · Sep 23",
+      "date": "Sep 23 · Day 3",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-23-universal-studios-singapore.pdf"
+      ],
+      "urlKeys": [
+        "uss"
+      ]
+    },
+    {
+      "id": "cable-car",
+      "item": "Cable Car SkyPass Premium",
+      "short": "Cable Car · Sep 23",
+      "date": "Sep 23 · Day 3",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-23-cable-car-skypass-premium.pdf"
+      ],
+      "urlKeys": [
+        "cable-car"
+      ]
+    },
+    {
+      "id": "luge",
+      "item": "Skyline Luge (4-Ride Combo)",
+      "short": "Skyline Luge · Sep 23 · 17:00",
+      "date": "Sep 23 · 17:00–18:00",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-23-skyline-luge.pdf"
+      ],
+      "urlKeys": [
+        "skyline-luge"
+      ]
+    },
+    {
+      "id": "wings-of-time",
+      "item": "Wings of Time + Buffet Dinner",
+      "short": "Wings of Time · Sep 23 · 19:40",
+      "date": "Sep 23 · 19:40 show",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-23-wings-of-time.pdf"
+      ],
+      "urlKeys": [
+        "wings-of-time"
+      ]
+    },
+    {
+      "id": "bus-sg-kl",
+      "item": "Bus SIN → KUL (KKKL Express)",
+      "short": "KKKL Bus · Sep 24 · 00:30",
+      "date": "Sep 24 · 00:30 from Bugis MRT Exit D",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "transport",
+      "vouchers": [
+        "sep-24-bus-sg-to-kl.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "hotel-kul",
+      "item": "Hotel Royal Signature KUL",
+      "short": "Hotel KUL · Sep 25–26",
+      "date": "Sep 25–26 (1N)",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "hotels",
+      "vouchers": [
+        "sep-25-hotel-royal-signature.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "petronas",
+      "item": "Petronas Skybridge (Sky Xperience)",
+      "short": "Petronas · Sep 25 · 18:30",
+      "date": "Sep 25 · 18:30 entry",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-25-petronas-skybridge.pdf"
+      ],
+      "urlKeys": [
+        "petronas-skybridge"
+      ]
+    },
+    {
+      "id": "w-kl-pool",
+      "item": "W KL Rooftop Pool Day Pass",
+      "short": "W KL Pool · Sep 26 · 15:00",
+      "date": "Sep 26 · 15:00 slot",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "vouchers": [
+        "sep-26-w-kl-rooftop-pool.pdf"
+      ],
+      "urlKeys": [
+        "w-kl-pool"
+      ]
+    },
+    {
+      "id": "bus-kl-sg",
+      "item": "Bus KUL → SIN (Cosmic Express)",
+      "short": "Cosmic Bus · Sep 26 · 00:15",
+      "date": "Sep 26 · 00:15 from TBS → Boon Lay",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "transport",
+      "vouchers": [
+        "sep-26-bus-kl-to-sg.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "visa-sin",
+      "item": "Singapore MEV Visa",
+      "short": "SIN Visa · Approved",
+      "date": "Approved",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "admin",
+      "vouchers": [
+        "[phone]-singapore-visa-approved-siddhant-varma.pdf",
+        "[phone]-singapore-visa-cover-letter-prabha-singh.pdf",
+        "[phone]-singapore-visa-cover-letter-siddhant-varma.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "insurance",
+      "item": "Travel Insurance — ICICI Lombard TripSecure+",
+      "short": "Insurance · Both travellers",
+      "date": "Sep 21–27",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "admin",
+      "vouchers": [
+        "[phone]-travel-insurance-icici-lombard-siddhant.pdf",
+        "[phone]-travel-insurance-icici-lombard-prabha.pdf"
+      ],
+      "urlKeys": []
+    },
+    {
+      "id": "aras-kl",
+      "item": "ARAS Restaurant, KL Tower",
+      "short": "ARAS Lunch · Sep 26 · 12:00",
+      "date": "Sep 26 · 12:00–14:30",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "dining",
+      "vouchers": [],
+      "urlKeys": [
+        "aras-restaurant"
+      ]
+    },
+    {
+      "id": "water-light-cruise",
+      "item": "Water & Light Cruise (Fort Canning)",
+      "short": "Light Cruise · Sep 24 · 19:30",
+      "date": "Sep 24 · Day 4 evening",
+      "sortDate": "[phone]",
+      "status": "not-booked",
+      "category": "attractions",
+      "notes": "Buy at Fort Canning kiosk on the day",
+      "vouchers": [],
+      "urlKeys": [
+        "river-cruise"
+      ]
+    },
+    {
+      "id": "priority-pass",
+      "item": "ICICI Sapphiro Priority Pass",
+      "short": "Priority Pass — activate before Sep 21",
+      "date": "Before Sep 21",
+      "sortDate": "[phone]",
+      "status": "pending",
+      "category": "admin",
+      "vouchers": [],
+      "notes": "2 complimentary lounge visits each",
+      "urlKeys": [
+        "sats-premier-lounge"
+      ]
+    },
+    {
+      "id": "sg-arrival-card-1",
+      "item": "Singapore Arrival Card (SGAC) — Entry 1",
+      "short": "SGAC · DEL→SIN arrival, filed",
+      "date": "For Sep 21 arrival",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "admin",
+      "vouchers": [
+        "[phone]-singapore-arrival-card-siddhant-prabha.pdf"
+      ],
+      "notes": "⚠️ Second SGAC still needed for the KUL→SIN return leg (~Sep25) — must be filed separately within 3 days before that arrival, single-entry only.",
+      "urlKeys": []
+    }
+  ]
+}

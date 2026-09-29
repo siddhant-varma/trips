@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" font-family="sans-serif">
+  <rect width="400" height="500" fill="#1e293b"/>
+  <text x="200" y="28" text-anchor="middle" fill="#38bdf8" font-size="16" font-weight="bold">Singapore — Geo Clusters</text>
+
+  <circle cx="90" cy="330" r="10" fill="#38bdf8"/>
+  <text x="105" y="334" fill="#e2e8f0" font-size="12">Little India/Rochor (hotel)</text>
+
+  <circle cx="110" cy="290" r="10" fill="#38bdf8"/>
+  <text x="125" y="294" fill="#e2e8f0" font-size="12">Kampong Glam</text>
+
+  <circle cx="200" cy="300" r="12" fill="#f59e0b"/>
+  <text x="215" y="304" fill="#e2e8f0" font-size="12">Marina Bay (major hub)</text>
+
+  <circle cx="160" cy="270" r="9" fill="#38bdf8"/>
+  <text x="175" y="274" fill="#e2e8f0" font-size="12">Clarke Quay/Fort Canning</text>
+
+  <circle cx="220" cy="260" r="8" fill="#64748b"/>
+  <text x="234" y="264" fill="#e2e8f0" font-size="12">Raffles Place</text>
+
+  <circle cx="150" cy="200" r="8" fill="#64748b"/>
+  <text x="164" y="204" fill="#e2e8f0" font-size="12">Orchard/Newton</text>
+
+  <circle cx="210" cy="150" r="8" fill="#64748b"/>
+  <text x="224" y="154" fill="#e2e8f0" font-size="12">Chinatown</text>
+
+  <circle cx="230" cy="410" r="10" fill="#38bdf8"/>
+  <text x="245" y="414" fill="#e2e8f0" font-size="12">Sentosa</text>
+
+  <circle cx="180" cy="440" r="8" fill="#64748b"/>
+  <text x="194" y="444" fill="#e2e8f0" font-size="12">HarbourFront</text>
+
+  <circle cx="320" cy="270" r="8" fill="#64748b"/>
+  <text x="334" y="274" fill="#e2e8f0" font-size="12">East Coast Park</text>
+
+  <circle cx="290" cy="70" r="9" fill="#f59e0b"/>
+  <text x="304" y="74" fill="#e2e8f0" font-size="12">Changi Airport</text>
+
+  <line x1="90" y1="330" x2="200" y2="300" stroke="#334155" stroke-width="1.5"/>
+  <line x1="200" y1="300" x2="230" y2="410" stroke="#334155" stroke-width="1.5"/>
+  <line x1="160" y1="270" x2="200" y2="300" stroke="#334155" stroke-width="1.5"/>
+  <line x1="200" y1="300" x2="290" y2="70" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+  <text x="200" y="480" text-anchor="middle" fill="#94a3b8" font-size="10">Schematic only — not to scale. See Clusters tab for full item lists.</text>
+</svg>
