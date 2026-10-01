@@ -1,14 +1,20 @@
-const CACHE = "trip-cache-v6";
+/* ── Service Worker ───────────────────────────────────────────────
+   Bump CACHE for each new trip (or each significant update).
+   ─────────────────────────────────────────────────────────────── */
+const CACHE = "trip-cache-v11"; // keep in sync with TRIP_CONFIG.swCacheName
+
 const STATIC = [
   "./",
   "./index.html",
   "./manifest.json",
   "./css/style.css",
+  "./js/trip-config.js",
   "./js/app.js",
+  // MapLibre from CDN — <script>/<link> fetch no-cors (opaque), so runtime caching skips them
+  "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.js",
+  "https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.css",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./assets/maps/sin-clusters.svg",
-  "./assets/maps/kul-clusters.svg",
   "./data/itinerary.json",
   "./data/masterlist.json",
   "./data/budget.json",
@@ -19,9 +25,14 @@ const STATIC = [
   "./data/tips.json",
   "./data/alternates.json",
   "./data/essentials.json",
-  "./data/weather-risks.json"
+  "./data/weather-risks.json",
+  "./data/map-config.json",
 ];
 
+/* Add voucher PDF paths here — they are cached best-effort so a
+   missing file won't break install. Paths are relative to the app root.
+   Example: "./vouchers/jan-01-flight-del-jfk.pdf"
+*/
 const VOUCHERS = [
   "./vouchers/sep-21-flight-del-sin-return.pdf",
   "./vouchers/sep-21-hotel-dash-living-rochor.pdf",
@@ -49,7 +60,6 @@ const VOUCHERS = [
 self.addEventListener("install", e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(STATIC)).then(() =>
-      // cache vouchers best-effort (large PDFs — don't fail install if missing)
       caches.open(CACHE).then(c =>
         Promise.allSettled(VOUCHERS.map(v => c.add(new Request(v)).catch(() => {})))
       )
@@ -82,7 +92,7 @@ self.addEventListener("fetch", e => {
   );
 });
 
-// Manual sync — bump cache version, re-cache everything
+// Manual sync — clears cache, re-fetches STATIC
 self.addEventListener("message", e => {
   if (e.data === "SYNC") {
     caches.delete(CACHE).then(() =>

@@ -2,16 +2,15 @@
 const D = {};   // data store
 const S = { tab: "today" };
 
-const DATE_TO_DAY = {
-  "2026-09-21":"Day1","2026-09-22":"Day2","2026-09-23":"Day3","2026-09-24":"Day4",
-  "2026-09-25":"Day5","2026-09-26":"Day6","2026-09-27":"Day7"
-};
-const DATA_FILES = ["itinerary","masterlist","budget","clusters","bookings","bookings-display","urls","tips","alternates","essentials","weather-risks"];
-
 /* ── Boot ────────────────────────────────────────────────────── */
 async function init() {
+  // Apply config to DOM
+  document.title = `${TRIP_CONFIG.flags} ${TRIP_CONFIG.title}`;
+  document.getElementById("topbar-flag").textContent = TRIP_CONFIG.flags;
+  document.getElementById("topbar-title").textContent = TRIP_CONFIG.title;
+
   try {
-    await Promise.all(DATA_FILES.map(async n => {
+    await Promise.all(TRIP_CONFIG.dataFiles.map(async n => {
       const r = await fetch(`data/${n}.json`);
       if (!r.ok) throw new Error(`${n}.json: ${r.status}`);
       D[n] = await r.json();
@@ -24,19 +23,22 @@ async function init() {
     return false;
   }
   renderTodayPill();
-  go("today");
+  go(TABS[location.hash.slice(1)] ? location.hash.slice(1) : "today"); // #tab deep link (search results)
   updateOfflineBanner();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
   return true;
 }
 
 function currentDay() {
-  return DATE_TO_DAY[new Date().toISOString().slice(0,10)] || null;
+  return TRIP_CONFIG.dateToDay[new Date().toISOString().slice(0, 10)] || null;
 }
 
 function renderTodayPill() {
   const day = currentDay();
-  if (!day) { document.getElementById("today-pill").textContent = "Sep 21–27"; return; }
+  if (!day) {
+    document.getElementById("today-pill").textContent = TRIP_CONFIG.dateRange;
+    return;
+  }
   const d = D.itinerary.days.find(x => x.day === day);
   document.getElementById("today-pill").textContent = d ? `${d.date} · ${d.day}` : "";
 }
@@ -97,7 +99,6 @@ function getWeatherIndex() {
       if (b.urlKey && b.risk) _weatherIndex[b.urlKey] = b.risk;
     });
   });
-  // critical bookings override
   (wr.criticalBookings||[]).forEach(b => {
     if (b.urlKey && b.risk) _weatherIndex[b.urlKey] = b.risk;
   });
@@ -129,7 +130,6 @@ function getVoucherIndex() {
   (D["bookings-display"]?.bookings || []).forEach(b => {
     (b.urlKeys || []).forEach(key => {
       if (!_voucherIndex[key]) _voucherIndex[key] = [];
-      // avoid dupes
       b.vouchers.forEach(v => {
         if (!_voucherIndex[key].includes(v)) _voucherIndex[key].push(v);
       });
@@ -142,7 +142,7 @@ function voucherButtonsForKeys(urlKeys) {
   const idx = getVoucherIndex();
   const vouchers = [...new Set((urlKeys||[]).flatMap(k => idx[k]||[]))];
   return vouchers.map(v => {
-    const label = v.replace(/^(sep-\d{2}-|2026-\d{2}-\d{2}-)/, "").replace(/\.pdf$/, "").replace(/-/g," ");
+    const label = v.replace(/^(\w{3}-\d{2}-|\d{4}-\d{2}-\d{2}-)/, "").replace(/\.pdf$/, "").replace(/-/g," ");
     return `<a class="voucher-btn" href="vouchers/${esc(v)}" target="_blank" rel="noopener">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       ${esc(label)}</a>`;
@@ -150,13 +150,12 @@ function voucherButtonsForKeys(urlKeys) {
 }
 
 /* ── Block card ──────────────────────────────────────────────── */
-let cardSeq = 0;
 function blockCard(block, dayIdx, bIdx) {
   const cardId = `b-${dayIdx}-${bIdx}`;
   const done = isDone(cardId);
-  const urls = D.urls.urls || {};
-  const tipsMap = D.tips.tips || {};
-  const altsMap = D.alternates.alternates || {};
+  const urls = D.urls?.urls || {};
+  const tipsMap = D.tips?.tips || {};
+  const altsMap = D.alternates?.alternates || {};
   const expandId = uid();
 
   const linked = (block.urlKeys||[])[0] && urls[(block.urlKeys||[])[0]];
@@ -171,7 +170,6 @@ function blockCard(block, dayIdx, bIdx) {
   const voucherHtml = voucherButtonsForKeys(block.urlKeys || []);
   const weatherBadge = weatherRiskBadge(block.urlKeys || []);
 
-  // Condense activity text: first sentence / up to first em-dash or long arrow
   const activityFull = block.activity;
   const activityShort = activityFull.split(/\s[—→]\s|\n/)[0].replace(/\s*[,;]\s*$/, "").trim();
   const isLong = activityFull.length > activityShort.length + 10;
@@ -245,15 +243,14 @@ function renderToday() {
   const dayData = day ? D.itinerary.days.find(d => d.day === day) : null;
 
   if (!dayData) {
-    // Pre-trip or post-trip view
-    const tripStart = new Date("2026-09-21");
+    const tripStart = new Date(TRIP_CONFIG.tripStart);
     const now = new Date();
     const diff = Math.ceil((tripStart - now) / 86400000);
     return `<div class="today-hero">
-      <div class="today-date">✈️ Singapore + Malaysia</div>
+      <div class="today-date">${esc(TRIP_CONFIG.flags)} ${esc(TRIP_CONFIG.title)}</div>
       <div class="today-sub">
         ${diff > 0 ? `<span>${diff} days to departure</span>` : "<span>Trip complete!</span>"}
-        <span class="today-city-badge">Sep 21–27, 2026</span>
+        <span class="today-city-badge">${esc(TRIP_CONFIG.dateRange)}</span>
       </div>
     </div>
     <div class="section-title">Pre-Trip Checklist</div>
@@ -284,18 +281,7 @@ function renderToday() {
 }
 
 function renderPreTripCards() {
-  const items = [
-    "MDAC form filed (3 days before Sep 24)",
-    "ICICI Sapphiro Priority Pass activated",
-    "HDFC Diners add-on card (Prabha) confirmed",
-    "Klook ₹933.80 discount follow-up",
-    "IndiGo flight status checked (24-48h before Sep 21)",
-    "ArtScience Museum booked after Sands LifeStyle signup",
-    "Day2 2:30-5:30pm overlap resolved",
-    "1-Arden Sep22 duplicate booking cancelled on SevenRooms",
-    "Budget ceiling decision (₹1.55L cap vs ₹1.82-1.97L estimate)",
-  ];
-  return items.map((item,i) => {
+  return TRIP_CONFIG.preTripChecklist.map((item, i) => {
     const id = `pre-${i}`;
     const done = isDone(id);
     return `<div class="card optional ${done?"card-done":""}" data-card-id="${id}">
@@ -359,11 +345,11 @@ const CAT_LABELS = {
 
 function renderBookings() {
   const bkd = D["bookings-display"] || { categories:[], bookings:[] };
-  const all = bkd.bookings.slice().sort((a,b) => a.sortDate.localeCompare(b.sortDate));
+  const all = bkd.bookings.slice().sort((a,b) => (a.sortDate||"").localeCompare(b.sortDate||""));
   const cats = bkd.categories;
   const byCat = {};
   cats.forEach(c => byCat[c] = []);
-  all.forEach(x => { if (byCat[x.category]) byCat[x.category].push(x); });
+  all.forEach(x => { if (byCat[x.category] !== undefined) byCat[x.category].push(x); });
 
   let list = "";
   cats.forEach(cat => {
@@ -390,7 +376,7 @@ function bookingCard(x) {
   const cardCls = x.status === "booked" ? "booked" : "optional";
 
   const voucherBtns = (x.vouchers||[]).map(v => {
-    const label = v.replace(/^(sep-\d{2}-|2026-\d{2}-\d{2}-)/, "").replace(/\.pdf$/, "").replace(/-/g," ");
+    const label = v.replace(/^(\w{3}-\d{2}-|\d{4}-\d{2}-\d{2}-)/, "").replace(/\.pdf$/, "").replace(/-/g," ");
     return `<a class="voucher-btn" href="vouchers/${esc(v)}" target="_blank" rel="noopener">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       ${esc(label)}</a>`;
@@ -425,7 +411,7 @@ function wireBookings() {
       : all.filter(x => x.status === val);
     const byCat = {};
     cats.forEach(c => byCat[c] = []);
-    filtered.forEach(x => { if (byCat[x.category]) byCat[x.category].push(x); });
+    filtered.forEach(x => { if (byCat[x.category] !== undefined) byCat[x.category].push(x); });
     let html = "";
     cats.forEach(cat => {
       if (!byCat[cat].length) return;
@@ -439,6 +425,7 @@ function wireBookings() {
 /* ── BUDGET ──────────────────────────────────────────────────── */
 function renderBudget() {
   const b = D.budget;
+  const sym = TRIP_CONFIG.homeCurrencySymbol;
   const low = parseInt(String(b.totalEstimateLow).replace(/,/g,""));
   const high = parseInt(String(b.totalEstimateHigh).replace(/,/g,""));
   const ceil = parseInt(String(b.ceiling).replace(/,/g,""));
@@ -449,18 +436,18 @@ function renderBudget() {
     <div class="budget-stat-row">
       <div class="budget-stat">
         <div class="budget-stat-label">Ceiling</div>
-        <div class="budget-stat-value" style="color:var(--accent)">₹${esc(b.ceiling)}</div>
+        <div class="budget-stat-value" style="color:var(--accent)">${sym}${esc(b.ceiling)}</div>
       </div>
       <div class="budget-stat">
         <div class="budget-stat-label">Estimate</div>
-        <div class="budget-stat-value">₹${esc(b.totalEstimateLow)}–${esc(b.totalEstimateHigh)}</div>
+        <div class="budget-stat-value">${sym}${esc(b.totalEstimateLow)}–${esc(b.totalEstimateHigh)}</div>
       </div>
     </div>
     <div class="budget-bar-wrap">
       <div class="budget-bar-labels">
-        <span>₹0</span>
+        <span>${sym}0</span>
         <span style="color:${pct>100?"var(--red)":"var(--text-2)"}">Estimate: ${pct}% of ceiling</span>
-        <span>₹${esc(b.ceiling)}</span>
+        <span>${sym}${esc(b.ceiling)}</span>
       </div>
       <div class="budget-bar-track">
         <div class="budget-bar-fill" style="width:${pct}%;${pct>100?"background:var(--red)":""}"></div>
@@ -471,14 +458,14 @@ function renderBudget() {
       <button class="seg-btn" data-view="lineitems">Line Items</button>
       <button class="seg-btn" data-view="flags">⚠️ Flags</button>
     </div>
-    <div id="budget-buckets">${b.buckets.map(bucketCard).join("")}</div>
-    <div id="budget-lineitems" class="hidden">${b.lineItems.map(lineItemCard).join("")}</div>
-    <div id="budget-flags" class="hidden">${b.flags.map(f=>`<div class="card critical"><div class="card-notes">${esc(f)}</div></div>`).join("")}</div>
+    <div id="budget-buckets">${(b.buckets||[]).map(x => bucketCard(x, sym)).join("")}</div>
+    <div id="budget-lineitems" class="hidden">${(b.lineItems||[]).map(x => lineItemCard(x, sym)).join("")}</div>
+    <div id="budget-flags" class="hidden">${(b.flags||[]).map(f=>`<div class="card critical"><div class="card-notes">${esc(f)}</div></div>`).join("")}</div>
   `;
 }
 
-function bucketCard(x) {
-  const amt = x.amount ? `₹${x.amount}` : `₹${x.amountLow}–${x.amountHigh}`;
+function bucketCard(x, sym) {
+  const amt = x.amount ? `${sym}${x.amount}` : `${sym}${x.amountLow}–${x.amountHigh}`;
   const cls = x.status === "paid" ? "badge-booked" : x.status === "estimate" ? "badge-pending" : "";
   return `<div class="card optional">
     <div class="card-meta">${badge(x.status, cls)}</div>
@@ -489,8 +476,8 @@ function bucketCard(x) {
   </div>`;
 }
 
-function lineItemCard(x) {
-  const cost = x.cost != null ? `₹${x.cost}` : `₹${x.costLow}–${x.costHigh}`;
+function lineItemCard(x, sym) {
+  const cost = x.cost != null ? `${sym}${x.cost}` : `${sym}${x.costLow}–${x.costHigh}`;
   const isCrit = x.status.includes("critical");
   const cls = x.status === "paid" ? "badge-booked" : isCrit ? "badge-critical" : "badge-pending";
   return `<div class="card ${isCrit ? "critical" : "optional"}">
@@ -502,13 +489,13 @@ function lineItemCard(x) {
       <div class="card-title">${esc(x.item)}</div>
       <div style="font-size:0.82rem;font-weight:600;color:var(--text-2);font-variant-numeric:tabular-nums;white-space:nowrap">${esc(cost)}</div>
     </div>
-    ${x.backupCost ? `<div class="card-notes">Backup: ₹${esc(x.backupCost)}</div>` : ""}
+    ${x.backupCost ? `<div class="card-notes">Backup: ${sym}${esc(x.backupCost)}</div>` : ""}
   </div>`;
 }
 
 function wireBudget() {
   const btns = document.querySelectorAll(".seg-btn");
-  const views = { buckets: "budget-buckets", lineitems: "budget-lineitems", flags: "budget-flags" };
+  const views = { buckets:"budget-buckets", lineitems:"budget-lineitems", flags:"budget-flags" };
   btns.forEach(btn => {
     btn.addEventListener("click", () => {
       btns.forEach(b => b.classList.remove("active"));
@@ -520,66 +507,177 @@ function wireBudget() {
 }
 
 /* ── MAP ─────────────────────────────────────────────────────── */
+const CLUSTER_COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+let _mapInst = null;
+let _mapCfg = null;
+
 function renderMap() {
+  const days = D.itinerary?.days || [];
+  const chips = ['All', ...days.map(d => d.day)].map((d, i) =>
+    `<button class="day-chip ${i===0?'active':''}" data-day="${esc(d)}">${esc(d)}</button>`
+  ).join('');
   return `
-    <div class="seg-group">
-      <button class="seg-btn active" data-city="sin">🇸🇬 Singapore</button>
-      <button class="seg-btn" data-city="kul">🇲🇾 Kuala Lumpur</button>
+    <div class="map-day-filter">${chips}</div>
+    <div class="map-wrap">
+      <div id="map-gl" class="map-gl-container"></div>
+      <details id="map-legend" class="map-legend"></details>
     </div>
-    <img id="map-img" class="map-img" src="assets/maps/sin-clusters.svg" alt="Singapore cluster map">
-    <p class="map-note">Schematic cluster layout — pins show relative grouping, not exact streets.</p>
-    <div class="section-title">Clusters</div>
-    ${renderClusterList("sin")}
-    <div id="kul-clusters" class="hidden">${renderClusterList("kul")}</div>`;
+    <div id="map-day-panel" class="map-day-panel hidden"></div>`;
 }
 
-function renderClusterList(city) {
-  const cityKey = city === "sin" ? "singapore" : "kualaLumpur";
-  const clusters = D.clusters[cityKey] || [];
-  const byId = Object.fromEntries((D.masterlist.items||[]).map(i => [i.id, i.name]));
-  return clusters.map(cl => {
-    const eid = uid();
-    const names = (cl.items||[]).map(k => byId[k]||k).filter(Boolean);
-    return `<div class="cluster-item">
-      <button class="cluster-header" data-target="${eid}">
-        <span>${esc(cl.cluster)}</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      <div class="cluster-body" id="${eid}">
-        ${names.length ? names.map(n=>`• ${esc(n)}`).join("<br>") : ""}
-        ${cl.notes ? `<br><br><em>${esc(cl.notes)}</em>` : ""}
-      </div>
-    </div>`;
-  }).join("");
+async function wireMap() {
+  if (!_mapCfg) {
+    try {
+      const r = await fetch('data/map-config.json');
+      _mapCfg = r.ok ? await r.json() : null;
+    } catch { _mapCfg = null; }
+  }
+  const container = document.getElementById('map-gl');
+  if (!container) return;
+  if (!_mapCfg || !(_mapCfg.pois?.length)) {
+    container.innerHTML = emptyState('No map data yet.');
+    return;
+  }
+  _mapInst = new maplibregl.Map({
+    container: 'map-gl',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
+    center: [_mapCfg.center[1], _mapCfg.center[0]],
+    zoom: _mapCfg.zoom ?? 12,
+    attributionControl: { compact: true },
+  });
+  renderLegend();
+  addPOIMarkers(null); // ponytail: DOM markers don't need 'load' (which waits for every tile)
+
+  document.querySelectorAll('.day-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.day-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const day = btn.dataset.day === 'All' ? null : btn.dataset.day;
+      addPOIMarkers(day);
+      renderDayPanel(day);
+    });
+  });
 }
 
-function wireMap() {
-  const btns = document.querySelectorAll(".seg-btn");
-  btns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      btns.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const city = btn.dataset.city;
-      const img = document.getElementById("map-img");
-      if (img) img.src = `assets/maps/${city}-clusters.svg`;
-      // swap cluster list
-      const sinList = document.querySelector("#view .cluster-item")?.closest("div");
-    });
+function addPOIMarkers(dayFilter) {
+  if (!_mapInst || !_mapCfg) return;
+  if (_mapInst._markers) _mapInst._markers.forEach(m => m.remove());
+  _mapInst._markers = [];
+
+  const pois = _mapCfg.pois || [];
+  const colorOf = clusterColors();
+  const filtered = dayFilter ? pois.filter(p => p.days?.includes(dayFilter)) : pois;
+
+  filtered.forEach((poi, idx) => {
+    const color = colorOf[poi.cluster] || CLUSTER_COLORS[0];
+    const el = document.createElement('div');
+    el.className = 'map-marker';
+    el.style.cssText = `background:${color}`;
+    el.textContent = dayFilter ? idx + 1 : '';
+
+    const popup = new maplibregl.Popup({ offset: 16, maxWidth: '220px' }).setHTML(`
+      <div class="map-popup">
+        <div class="map-popup-name">${esc(poi.name)}</div>
+        <div class="map-popup-meta">${esc(poi.cluster)}${poi.type ? ` · ${esc(poi.type)}` : ''}</div>
+        <a class="map-popup-btn" href="https://maps.google.com/?q=${poi.lat},${poi.lon}" target="_blank" rel="noopener">
+          Open in Maps ↗
+        </a>
+      </div>`);
+
+    _mapInst._markers.push(
+      new maplibregl.Marker({ element: el })
+        .setLngLat([poi.lon, poi.lat])
+        .setPopup(popup)
+        .addTo(_mapInst)
+    );
   });
-  // cluster accordions
-  document.querySelectorAll(".cluster-header").forEach(hdr => {
-    hdr.addEventListener("click", () => {
-      const body = document.getElementById(hdr.dataset.target);
-      if (!body) return;
-      const open = body.classList.toggle("open");
-      hdr.classList.toggle("open", open);
-    });
-  });
+
+  drawRoute(dayFilter ? filtered.map(p => [p.lon, p.lat]) : []);
+
+  if (dayFilter && filtered.length) {
+    const b = new maplibregl.LngLatBounds();
+    filtered.forEach(p => b.extend([p.lon, p.lat]));
+    _mapInst.fitBounds(b, { padding: 64, maxZoom: 15 });
+  } else if (!dayFilter) {
+    _mapInst.easeTo({ center: [_mapCfg.center[1], _mapCfg.center[0]], zoom: _mapCfg.zoom ?? 12 });
+  }
+}
+
+function clusterColors() {
+  const clusters = [...new Set((_mapCfg?.pois || []).map(p => p.cluster))];
+  return Object.fromEntries(clusters.map((c, i) => [c, CLUSTER_COLORS[i % CLUSTER_COLORS.length]]));
+}
+
+function renderLegend() {
+  const el = document.getElementById('map-legend');
+  if (!el) return;
+  el.open = matchMedia('(min-width: 600px)').matches; // collapsed on phones
+  el.innerHTML = `<summary>Clusters</summary>` + Object.entries(clusterColors()).map(([c, col]) =>
+    `<div class="map-legend-item"><span class="map-legend-dot" style="background:${col}"></span>${esc(c)}</div>`
+  ).join('');
+}
+
+// Dashed line through the day's POIs in visit order; [] clears it.
+let _routeCoords = [];
+function drawRoute(coords) {
+  _routeCoords = coords;
+  const apply = () => {
+    const data = { type: 'Feature', geometry: { type: 'LineString', coordinates: _routeCoords } };
+    try {
+      const src = _mapInst.getSource('day-route');
+      if (src) return src.setData(data);
+      _mapInst.addSource('day-route', { type: 'geojson', data });
+      _mapInst.addLayer({ id: 'day-route', type: 'line', source: 'day-route',
+        paint: { 'line-color': '#f97316', 'line-width': 3, 'line-dasharray': [2, 1.5] } });
+    } catch { _mapInst.once('styledata', apply); } // style not ready yet — retry with latest coords
+  };
+  apply();
+}
+
+function renderDayPanel(day) {
+  const panel = document.getElementById('map-day-panel');
+  if (!panel) return;
+  if (!day) { panel.classList.add('hidden'); return; }
+  const pois = (_mapCfg?.pois || []).filter(p => p.days?.includes(day));
+  if (!pois.length) { panel.classList.add('hidden'); return; }
+
+  const waypointUrl = 'https://www.google.com/maps/dir/' + pois.map(p => `${p.lat},${p.lon}`).join('/');
+  const items = pois.map((p, i) => {
+    let transit = '';
+    if (i > 0) {
+      const prev = pois[i - 1];
+      const dist = haversineKm(prev.lat, prev.lon, p.lat, p.lon);
+      transit = `<div class="day-panel-transit">↓ ~${dist < 1 ? Math.round(dist * 1000) + 'm walk' : dist < 3 ? Math.round(dist * 12) + 'min walk' : Math.round(dist * 3) + 'min transit'}</div>`;
+    }
+    return `${transit}<div class="day-panel-item"><span class="day-panel-num">${i+1}</span><div><div class="day-panel-name">${esc(p.name)}</div>${p.type?`<div class="day-panel-type">${esc(p.type)}</div>`:''}</div></div>`;
+  }).join('');
+
+  // ponytail: itinerary blocks carry no coords, so timeline and numbered stops are separate lists
+  const blocks = (D.itinerary?.days || []).find(d => d.day === day)?.blocks?.filter(b => b.type === 'must') || [];
+  const timeline = blocks.map(b => `<div class="day-tl-item">
+      <div class="day-tl-time">${esc(b.block)}</div>
+      <div><div class="day-panel-name">${esc(b.activity)}</div>${b.notes ? `<div class="day-tl-notes">${esc(b.notes)}</div>` : ''}</div>
+    </div>`).join('');
+
+  panel.innerHTML = `
+    ${timeline ? `<div class="day-panel-header"><span>${day} plan</span></div>${timeline}` : ''}
+    <div class="day-panel-header" style="${timeline ? 'margin-top:14px' : ''}">
+      <span>${day} route</span>
+      <a class="map-popup-btn" href="${waypointUrl}" target="_blank" rel="noopener">Full route ↗</a>
+    </div>
+    ${items}`;
+  panel.classList.remove('hidden');
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 /* ── MASTERLIST ──────────────────────────────────────────────── */
 function renderMasterlist() {
-  const items = D.masterlist.items || [];
+  const items = D.masterlist?.items || [];
   const types = [...new Set(items.map(i => i.type))];
   const clusters = [...new Set(items.map(i => i.cluster))];
   const opts = arr => arr.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
@@ -603,7 +701,7 @@ function renderMasterlist() {
 
 function masterlistCard(item) {
   const isBig = item.status === "primary" || item.status === "booked";
-  const cls = item.status === "booked" ? "booked" : isBig ? "must" : item.status === "cut" ? "optional" : "optional";
+  const cls = item.status === "booked" ? "booked" : isBig ? "must" : "optional";
   const sCls = item.status === "booked" ? "badge-booked" : item.status === "cut" ? "badge-cut" : isBig ? "badge-must" : "badge-optional";
   return `<div class="card ${cls}">
     <div class="card-meta">
@@ -621,7 +719,7 @@ function masterlistCard(item) {
 }
 
 function wireMasterlist() {
-  const items = D.masterlist.items || [];
+  const items = D.masterlist?.items || [];
   const search = document.getElementById("ml-search");
   const typeSel = document.getElementById("ml-type");
   const clusterSel = document.getElementById("ml-cluster");
@@ -662,18 +760,18 @@ function checklistSection(anchorId, title, items, prefix) {
 }
 
 const ESS_INDEX = [
-  { id: "ess-flight-visa", label: "✈️ Flight & Visa" },
-  { id: "ess-documents", label: "📋 Documents" },
-  { id: "ess-money", label: "💰 Money & Payments" },
-  { id: "ess-connectivity", label: "📶 Connectivity" },
-  { id: "ess-insurance", label: "🛡 Insurance" },
-  { id: "ess-weather", label: "🌤 Weather" },
-  { id: "ess-risks", label: "⚠️ Risks" },
-  { id: "ess-contacts", label: "📱 Contacts" },
-  { id: "ess-tips", label: "💡 Tips" },
-  { id: "ess-links", label: "🔗 Links" },
-  { id: "ess-packing", label: "🧳 Packing" },
-  { id: "ess-etiquette", label: "🕌 Etiquette" },
+  { id:"ess-flight-visa", label:"✈️ Flight & Visa" },
+  { id:"ess-documents",   label:"📋 Documents" },
+  { id:"ess-money",       label:"💰 Money & Payments" },
+  { id:"ess-connectivity",label:"📶 Connectivity" },
+  { id:"ess-insurance",   label:"🛡 Insurance" },
+  { id:"ess-weather",     label:"🌤 Weather" },
+  { id:"ess-risks",       label:"⚠️ Risks" },
+  { id:"ess-contacts",    label:"📱 Contacts" },
+  { id:"ess-tips",        label:"💡 Tips" },
+  { id:"ess-links",       label:"🔗 Links" },
+  { id:"ess-packing",     label:"🧳 Packing" },
+  { id:"ess-etiquette",   label:"🕌 Etiquette" },
 ];
 
 function renderEssentials() {
@@ -689,18 +787,19 @@ function renderEssentials() {
   return indexHtml + `
     ${sectionTitle("ess-flight-visa", "✈️ Flight & Visa")}
     <div class="ess-row">
-      <div class="ess-item"><div class="ess-label">PNR</div><div class="ess-value">${esc(e.flightInfo.pnr)}</div></div>
-      <div class="ess-item"><div class="ess-label">Baggage</div><div class="ess-value">${esc(e.flightInfo.baggage)}</div></div>
+      <div class="ess-item"><div class="ess-label">PNR</div><div class="ess-value">${esc(e.flightInfo?.pnr||"—")}</div></div>
+      <div class="ess-item"><div class="ess-label">Baggage</div><div class="ess-value">${esc(e.flightInfo?.baggage||"—")}</div></div>
     </div>
     <div class="card optional">
       <div class="card-notes">
-        <b>Out:</b> ${esc(e.flightInfo.outbound)}<br>
-        <b>Return:</b> ${esc(e.flightInfo.return)}
+        <b>Out:</b> ${esc(e.flightInfo?.outbound||"—")}<br>
+        <b>Return:</b> ${esc(e.flightInfo?.return||"—")}
       </div>
     </div>
     <div class="ess-row">
-      <div class="ess-item"><div class="ess-label">Visa SG</div><div class="ess-value">${esc(e.visaStatus.singapore)}</div></div>
-      <div class="ess-item"><div class="ess-label">Visa MY</div><div class="ess-value">${esc(e.visaStatus.malaysia)}</div></div>
+      ${(e.visaStatus ? Object.entries(e.visaStatus) : []).map(([k,v])=>`
+        <div class="ess-item"><div class="ess-label">Visa ${esc(k)}</div><div class="ess-value">${esc(v)}</div></div>
+      `).join("")}
     </div>
 
     ${checklistSection("ess-documents", "📋 Documents Checklist", e.documentsChecklist, "doc")}
@@ -716,10 +815,9 @@ function renderEssentials() {
         </div>`;
       }).join("")}
     </div>
-    <div class="card optional"><div class="card-notes">${(e.currencyNotes||[]).map(c=>`• ${esc(c)}`).join("<br>")}</div></div>
+    ${(e.currencyNotes||[]).length ? `<div class="card optional"><div class="card-notes">${(e.currencyNotes).map(c=>`• ${esc(c)}`).join("<br>")}</div></div>` : ""}
 
     ${checklistSection("ess-connectivity", "📶 Connectivity & SIM", e.connectivityChecklist, "conn")}
-    <div class="card optional"><div class="card-notes"><b>Singtel retailers near Rochor:</b><br>${(e.simStrategy?.singtelRetailersNearRochorHotel||[]).map(r=>`${esc(r.name)} — ${esc(r.address)} · ${esc(r.nearestMRT)} MRT`).join("<br>")}</div></div>
 
     ${ins ? `
     ${sectionTitle("ess-insurance", "🛡 Insurance")}
@@ -737,14 +835,12 @@ function renderEssentials() {
       }).join("")}
     </div>
     <div class="section-title" style="font-size:0.72rem">Medical Emergency Steps</div>
-    <div class="card optional"><div class="card-notes">${(ins.medicalSteps||[]).map(s=>`${esc(s)}`).join("<br><br>")}</div></div>
+    <div class="card optional"><div class="card-notes">${(ins.medicalSteps||[]).map(s=>esc(s)).join("<br><br>")}</div></div>
     <div class="section-title" style="font-size:0.72rem">Docs by Claim Type</div>
     ${(ins.docsByClaimType||[]).map(d=>`<div class="card optional">
       <div class="card-row-top"><div class="card-title" style="font-size:0.8rem">${esc(d.type)}</div></div>
       <div class="card-notes">${esc(d.docs)}</div>
     </div>`).join("")}
-    <div class="section-title" style="font-size:0.72rem">Escalation</div>
-    <div class="card optional"><div class="card-notes">${(ins.escalation||[]).map(s=>`• ${esc(s)}`).join("<br>")}</div></div>
     ` : ""}
 
     ${weather.length ? `
@@ -755,7 +851,7 @@ function renderEssentials() {
         <span class="badge">${esc(w.city || "")}</span>
       </div>
       <div class="card-notes">${esc(w.temp || w.forecast || w.note || "")}${w.rain ? `<br>🌧 ${esc(w.rain)}` : ""}</div>
-    </div>`).join("") }` : ""}
+    </div>`).join("")}` : ""}
 
     ${sectionTitle("ess-risks", "⚠️ Active Risks")}
     ${(e.activeRisks||[]).map(r => {
@@ -767,7 +863,7 @@ function renderEssentials() {
         <div class="risk-dot ${dot}"></div>
         <div class="risk-body">
           <div class="risk-title">${esc(text.slice(0, 80))}${text.length > 80 ? "…" : ""}</div>
-          ${detail ? `<div class="risk-detail">${esc(detail)}</div>` : (text.length > 80 ? `<div class="risk-detail">${esc(text)}</div>` : "")}
+          ${detail ? `<div class="risk-detail">${esc(detail)}</div>` : ""}
         </div>
       </div>`;
     }).join("")}
@@ -783,11 +879,11 @@ function renderEssentials() {
 
     ${(e.insiderTips||[]).length ? `
     ${sectionTitle("ess-tips", "💡 Insider Tips")}
-    <div class="card optional"><div class="card-notes">${(e.insiderTips||[]).map(t=>`• ${esc(t)}`).join("<br><br>")}</div></div>` : ""}
+    <div class="card optional"><div class="card-notes">${(e.insiderTips).map(t=>`• ${esc(t)}`).join("<br><br>")}</div></div>` : ""}
 
     ${(e.referenceLinks||[]).length ? `
     ${sectionTitle("ess-links", "🔗 Reference Links")}
-    ${(e.referenceLinks||[]).map(r => `<div class="card optional">
+    ${(e.referenceLinks).map(r => `<div class="card optional">
       <div class="card-row-top"><div class="card-title" style="font-size:0.82rem">${esc(r.label)}</div>
         <a href="${esc(r.url)}" target="_blank" rel="noopener" class="badge badge-booked" style="text-decoration:none">Open</a>
       </div>
@@ -796,10 +892,10 @@ function renderEssentials() {
 
     ${checklistSection("ess-packing", "🧳 Packing Checklist", e.packingChecklist, "pack")}
 
-    ${(e.malaysiaEtiquetteChecklist||[]).length ? `
-    ${sectionTitle("ess-etiquette", "🕌 Malaysia Etiquette")}
+    ${(e.etiquetteChecklist||e.malaysiaEtiquetteChecklist||[]).length ? `
+    ${sectionTitle("ess-etiquette", "🕌 Local Etiquette")}
     <div class="card optional" style="padding:12px 16px">
-      ${(e.malaysiaEtiquetteChecklist).map((item,i) => `<div class="checklist-item"><div class="card-notes">• ${esc(item)}</div></div>`).join("")}
+      ${(e.etiquetteChecklist||e.malaysiaEtiquetteChecklist).map(item => `<div class="checklist-item"><div class="card-notes">• ${esc(item)}</div></div>`).join("")}
     </div>` : ""}
   `;
 }
@@ -807,15 +903,9 @@ function renderEssentials() {
 function wireEssentials() {
   document.querySelectorAll(".ess-index-btn").forEach(btn => {
     btn.addEventListener("click", () => {
-      document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(btn.dataset.target)?.scrollIntoView({ behavior:"smooth", block:"start" });
     });
   });
-}
-
-function formatLines(val) {
-  if (Array.isArray(val)) return val.map(v=>`• ${esc(v)}`).join("<br>");
-  if (typeof val === "object" && val) return Object.entries(val).map(([k,v])=>`<b>${esc(k)}:</b> ${esc(v)}`).join("<br>");
-  return esc(String(val||""));
 }
 
 window.toggleChecklistItem = function(id) {
@@ -862,22 +952,22 @@ function wireSearch() {
     const q = input.value.toLowerCase().trim();
     if (!q) { results.innerHTML = ""; return; }
     const hits = [];
-    D.itinerary.days.forEach(d => d.blocks.forEach(b => {
+    (D.itinerary?.days||[]).forEach(d => (d.blocks||[]).forEach(b => {
       if (b.activity.toLowerCase().includes(q) || (b.cluster||"").toLowerCase().includes(q)) {
-        hits.push({ tag:`${esc(d.day)} · ${esc(b.block)}`, title: esc(b.activity), sub: esc(b.cluster||""), type: b.type });
+        hits.push({ tag:`${esc(d.day)} · ${esc(b.block)}`, title:esc(b.activity), sub:esc(b.cluster||""), type:b.type });
       }
     }));
-    D.masterlist.items.forEach(i => {
+    (D.masterlist?.items||[]).forEach(i => {
       if (i.name.toLowerCase().includes(q) || (i.cluster||"").toLowerCase().includes(q)) {
-        hits.push({ tag:`List · ${esc(i.type)}`, title: esc(i.name), sub: `${esc(i.cluster)} — ${esc(i.cost||"")}`, type: i.status === "booked" ? "booked" : "optional" });
+        hits.push({ tag:`List · ${esc(i.type)}`, title:esc(i.name), sub:`${esc(i.cluster)} — ${esc(i.cost||"")}`, type:i.status==="booked"?"booked":"optional" });
       }
     });
-    D.bookings.bookings.forEach(b => {
+    (D.bookings?.bookings||[]).forEach(b => {
       if (b.item.toLowerCase().includes(q)) {
-        hits.push({ tag:`Booking`, title: esc(b.item), sub: esc(b.reference||""), type: b.status === "booked" ? "booked" : "optional" });
+        hits.push({ tag:"Booking", title:esc(b.item), sub:esc(b.reference||""), type:b.status==="booked"?"booked":"optional" });
       }
     });
-    if (!hits.length) { results.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><div>No matches for "${esc(q)}"</div></div>`; return; }
+    if (!hits.length) { results.innerHTML = emptyState(`No matches for "${esc(q)}"`); return; }
     results.innerHTML = hits.map(h => `<div class="card ${h.type}">
       <div class="card-meta">${badge(h.tag)}</div>
       <div class="card-title">${h.title}</div>
@@ -893,17 +983,17 @@ function renderWeather() {
   const wr = D["weather-risks"];
   if (!wr) return emptyState("Weather data unavailable");
 
-  const overallRiskCard = `<div class="card critical" style="border-left-color:${RISK_COLOR.CRITICAL}">
+  const overallRiskCard = wr.overview ? `<div class="card critical" style="border-left-color:${RISK_COLOR.CRITICAL}">
     <div class="card-title" style="font-size:0.82rem;font-weight:600">⚠️ Trip Overview</div>
     <div class="card-notes">${esc(wr.overview)}</div>
-  </div>`;
+  </div>` : "";
 
   const critHtml = (wr.criticalBookings||[]).map(b => {
     const col = RISK_COLOR[b.risk] || "var(--text-3)";
-    return `<div class="card ${b.risk === "CRITICAL" ? "critical" : "must"}" style="border-left-color:${col}">
+    return `<div class="card ${b.risk==="CRITICAL"?"critical":"must"}" style="border-left-color:${col}">
       <div class="card-meta">
         <span class="badge" style="background:${col}20;color:${col};border:1px solid ${col}40">${esc(b.risk)}</span>
-        <span class="badge">${esc(b.day)} · ${esc(b.time)}</span>
+        <span class="badge">${esc(b.day)} · ${esc(b.time||"")}</span>
       </div>
       <div class="card-title">${esc(b.name)}</div>
       <div class="card-notes" style="margin-top:4px">→ ${esc(b.action)}</div>
@@ -924,11 +1014,10 @@ function renderWeather() {
         </div>
       </div>`;
     }).join("");
-
     return `<div class="day-header" data-expand="${expandId}" style="cursor:pointer;border-left:3px solid ${col}">
       <div class="day-header-left">
         <div class="day-header-date">${esc(d.date)}</div>
-        <div class="day-header-meta"><span>${esc(d.day)}</span><span>·</span><span>${esc(d.city)}</span></div>
+        <div class="day-header-meta"><span>${esc(d.day)}</span><span>·</span><span>${esc(d.city||"")}</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:0.72rem;font-weight:700;color:${col}">${esc(d.overallRisk)}</span>
@@ -964,16 +1053,12 @@ function renderWeather() {
 
   return `
     ${overallRiskCard}
-    <div class="section-title">🚨 Critical Bookings — Act Now</div>
-    ${critHtml}
+    ${critHtml ? `<div class="section-title">🚨 Critical Bookings</div>${critHtml}` : ""}
     <div class="section-title">📅 Day-by-Day Risk</div>
-    ${daysHtml}
-    <div class="section-title">🏠 Best Indoor Fallbacks</div>
-    ${fallbackHtml}
-    <div class="section-title">🎒 Gear Checklist</div>
-    <div class="card optional" style="padding:12px 16px">${gearHtml}</div>
-    <div class="section-title">📱 Weather Apps</div>
-    ${appsHtml}
+    ${daysHtml || emptyState("No weather data")}
+    ${fallbackHtml ? `<div class="section-title">🏠 Indoor Fallbacks</div>${fallbackHtml}` : ""}
+    ${gearHtml ? `<div class="section-title">🎒 Gear Checklist</div><div class="card optional" style="padding:12px 16px">${gearHtml}</div>` : ""}
+    ${appsHtml ? `<div class="section-title">📱 Weather Apps</div>${appsHtml}` : ""}
   `;
 }
 
@@ -992,9 +1077,6 @@ function wireWeather() {
 
 /* ── EXPENSES ────────────────────────────────────────────────── */
 const EXP_KEY = "trip-expenses";
-const EXP_CATS = ["Food","Transport","Shopping","Attraction","Accommodation","Misc"];
-// rough conversion to INR (offline approximations, Sep 2026)
-const TO_INR = { SGD: 62, MYR: 19, INR: 1 };
 
 function loadExpenses() {
   try { return JSON.parse(localStorage.getItem(EXP_KEY) || "[]"); } catch { return []; }
@@ -1005,50 +1087,50 @@ function saveExpenses(arr) {
 
 function renderExpenses() {
   const exps = loadExpenses();
-  const ceil = 155000; // ₹1.55L
+  const ceil = TRIP_CONFIG.spendingCeiling;
+  const sym  = TRIP_CONFIG.homeCurrencySymbol;
+  const toHome = TRIP_CONFIG.toHomeCurrency;
 
-  // Totals per currency
-  const totals = { SGD:0, MYR:0, INR:0 };
+  const totals = {};
+  TRIP_CONFIG.currencies.forEach(c => totals[c] = 0);
   exps.forEach(e => { totals[e.currency] = (totals[e.currency]||0) + e.amount; });
-  const totalInr = Object.entries(totals).reduce((s,[c,v]) => s + v * (TO_INR[c]||1), 0);
-  const pct = Math.min(100, Math.round((totalInr / ceil) * 100));
-  const over = totalInr > ceil;
+  const totalHome = Object.entries(totals).reduce((s,[c,v]) => s + v * (toHome[c]||1), 0);
+  const pct = Math.min(100, Math.round((totalHome / ceil) * 100));
+  const over = totalHome > ceil;
 
   const summaryHtml = `
     <div class="budget-stat-row">
       <div class="budget-stat">
         <div class="budget-stat-label">Ceiling</div>
-        <div class="budget-stat-value" style="color:var(--accent)">₹1,55,000</div>
+        <div class="budget-stat-value" style="color:var(--accent)">${sym}${ceil.toLocaleString()}</div>
       </div>
       <div class="budget-stat">
-        <div class="budget-stat-label">Spent (est. INR)</div>
-        <div class="budget-stat-value" style="color:${over?"var(--red)":"var(--green)"}">₹${Math.round(totalInr).toLocaleString("en-IN")}</div>
+        <div class="budget-stat-label">Spent (est. ${esc(TRIP_CONFIG.homeCurrency)})</div>
+        <div class="budget-stat-value" style="color:${over?"var(--red)":"var(--green)"}">${sym}${Math.round(totalHome).toLocaleString()}</div>
       </div>
     </div>
     <div class="budget-bar-wrap">
       <div class="budget-bar-track"><div class="budget-bar-fill" style="width:${pct}%;${over?"background:var(--red)":""}"></div></div>
       <div class="budget-bar-labels" style="margin-top:4px">
-        ${totals.SGD ? `<span>SGD ${totals.SGD.toFixed(2)}</span>` : ""}
-        ${totals.MYR ? `<span>MYR ${totals.MYR.toFixed(2)}</span>` : ""}
-        ${totals.INR ? `<span>₹${totals.INR.toFixed(0)}</span>` : ""}
+        ${TRIP_CONFIG.currencies.filter(c => totals[c]).map(c => `<span>${c} ${totals[c].toFixed(2)}</span>`).join("")}
         <span style="margin-left:auto;color:${over?"var(--red)":"var(--text-2)"}">≈ ${pct}% of ceiling</span>
       </div>
     </div>`;
+
+  const currencyOptions = TRIP_CONFIG.currencies.map((c,i) =>
+    `<option value="${esc(c)}" ${i===0?"selected":""}>${esc(c)}</option>`
+  ).join("");
 
   const formHtml = `
     <div class="section-title">Add Expense</div>
     <div class="exp-form card optional" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px">
       <div style="display:flex;gap:8px">
         <input type="number" id="exp-amount" class="exp-input" placeholder="Amount" min="0" step="0.01" style="flex:1">
-        <select id="exp-currency" class="exp-input" style="width:80px">
-          <option value="SGD">SGD</option>
-          <option value="MYR">MYR</option>
-          <option value="INR" selected>INR</option>
-        </select>
+        <select id="exp-currency" class="exp-input" style="width:80px">${currencyOptions}</select>
       </div>
       <div style="display:flex;gap:8px">
         <select id="exp-cat" class="exp-input" style="flex:1">
-          ${EXP_CATS.map(c=>`<option>${c}</option>`).join("")}
+          ${TRIP_CONFIG.expenseCategories.map(c=>`<option>${c}</option>`).join("")}
         </select>
         <input type="text" id="exp-note" class="exp-input" placeholder="Note (optional)" style="flex:2">
       </div>
@@ -1060,9 +1142,9 @@ function renderExpenses() {
         <span>Entries <span style="font-size:0.72rem;color:var(--text-3);font-weight:400">${exps.length} total</span></span>
         <button class="exp-csv-btn" onclick="downloadExpensesCSV()" style="font-size:0.72rem;padding:4px 10px;border-radius:6px;background:var(--bg2);color:var(--text-2);border:1px solid var(--border);cursor:pointer;font-weight:600">↓ CSV</button>
       </div>` +
-      exps.slice().reverse().map((e,ri) => {
+      exps.slice().reverse().map((e, ri) => {
         const i = exps.length - 1 - ri;
-        const inr = Math.round(e.amount * (TO_INR[e.currency]||1));
+        const home = Math.round(e.amount * (toHome[e.currency]||1));
         return `<div class="card optional" data-exp-idx="${i}">
           <div class="card-row-top">
             <div class="card-title" style="font-size:0.82rem">${esc(e.note||e.category)}</div>
@@ -1071,8 +1153,7 @@ function renderExpenses() {
           <div class="card-meta" style="justify-content:space-between">
             <div>
               <span class="badge">${esc(e.category)}</span>
-              <span class="badge" style="color:var(--text-3)">≈ ₹${inr.toLocaleString("en-IN")}</span>
-              ${e.note && e.note !== e.category ? `<span class="badge">${esc(new Date(e.ts).toLocaleDateString("en-IN",{day:"numeric",month:"short"}))}</span>` : ""}
+              <span class="badge" style="color:var(--text-3)">≈ ${sym}${home.toLocaleString()}</span>
             </div>
             <button class="exp-del-btn" data-idx="${i}" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:0.9rem;padding:2px 6px" title="Delete">✕</button>
           </div>
@@ -1086,7 +1167,6 @@ function renderExpenses() {
 function wireExpenses() {
   const addBtn = document.getElementById("exp-add");
   if (!addBtn) return;
-
   addBtn.addEventListener("click", () => {
     const amount = parseFloat(document.getElementById("exp-amount").value);
     const currency = document.getElementById("exp-currency").value;
@@ -1094,13 +1174,12 @@ function wireExpenses() {
     const note = document.getElementById("exp-note").value.trim();
     if (!amount || amount <= 0) { document.getElementById("exp-amount").focus(); return; }
     const exps = loadExpenses();
-    exps.push({ ts: Date.now(), amount, currency, category, note });
+    exps.push({ ts:Date.now(), amount, currency, category, note });
     saveExpenses(exps);
     document.getElementById("exp-amount").value = "";
     document.getElementById("exp-note").value = "";
     go("expenses");
   });
-
   document.getElementById("exp-list")?.addEventListener("click", e => {
     const btn = e.target.closest(".exp-del-btn");
     if (!btn) return;
@@ -1115,12 +1194,12 @@ function wireExpenses() {
 function downloadExpensesCSV() {
   const exps = loadExpenses();
   if (!exps.length) { alert("No expenses to export."); return; }
-  const rows = [["timestamp","date","amount","currency","approx_inr","category","note"]];
+  const rows = [["timestamp","date","amount","currency","approx_home","category","note"]];
   exps.forEach(e => {
     const d = new Date(e.ts);
     const date = d.toISOString().slice(0,10);
-    const inr = Math.round(e.amount * (TO_INR[e.currency] || 1));
-    rows.push([e.ts, date, e.amount.toFixed(2), e.currency, inr, e.category, `"${(e.note||"").replace(/"/g,'""')}"`]);
+    const home = Math.round(e.amount * (toHome[e.currency] || 1));
+    rows.push([e.ts, date, e.amount.toFixed(2), e.currency, home, e.category, `"${(e.note||"").replace(/"/g,'""')}"`]);
   });
   const csv = rows.map(r => r.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
@@ -1138,31 +1217,31 @@ function emptyState(msg) {
 
 /* ── Tab registry ────────────────────────────────────────────── */
 const TABS = {
-  today: renderToday,
-  itinerary: renderItinerary,
-  bookings: renderBookings,
-  budget: renderBudget,
-  weather: renderWeather,
-  expenses: renderExpenses,
-  map: renderMap,
+  today:      renderToday,
+  itinerary:  renderItinerary,
+  bookings:   renderBookings,
+  budget:     renderBudget,
+  weather:    renderWeather,
+  expenses:   renderExpenses,
+  map:        renderMap,
   masterlist: renderMasterlist,
   essentials: renderEssentials,
-  notes: renderNotes,
-  search: renderSearch,
+  notes:      renderNotes,
+  search:     renderSearch,
 };
 
 const WIRE = {
-  today: () => { wireDoneButtons(); },
-  itinerary: wireItinerary,
-  bookings: wireBookings,
-  budget: wireBudget,
-  weather: wireWeather,
-  expenses: wireExpenses,
-  map: wireMap,
+  today:      () => { wireDoneButtons(); },
+  itinerary:  wireItinerary,
+  bookings:   wireBookings,
+  budget:     wireBudget,
+  weather:    wireWeather,
+  expenses:   wireExpenses,
+  map:        wireMap,
   masterlist: wireMasterlist,
   essentials: wireEssentials,
-  notes: wireNotes,
-  search: wireSearch,
+  notes:      wireNotes,
+  search:     wireSearch,
 };
 
 /* ── Offline ─────────────────────────────────────────────────── */
@@ -1183,14 +1262,12 @@ function wireSync() {
     navigator.serviceWorker.addEventListener("message", e => {
       if (e.data === "SYNC_DONE") {
         btn.classList.remove("syncing");
-        // reload data
-        Promise.all(DATA_FILES.map(async n => {
+        Promise.all(TRIP_CONFIG.dataFiles.map(async n => {
           const r = await fetch(`data/${n}.json?t=${Date.now()}`);
           D[n] = await r.json();
         })).then(() => go(S.tab));
       }
-    }, { once: true });
-    // fallback timeout
+    }, { once:true });
     setTimeout(() => btn.classList.remove("syncing"), 5000);
   });
 }

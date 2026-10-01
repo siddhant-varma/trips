@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SG+MY Trip Sep 2026</title>
+<title>Trip PWA</title><!-- updated by trip-config.js at runtime -->
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="theme-color" content="#0A0F1E">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.css">
 </head>
 <body>
 
@@ -19,8 +20,8 @@
 
 <header class="topbar">
   <div class="topbar-left">
-    <span class="topbar-flag">🇸🇬🇲🇾</span>
-    <span class="topbar-title">SG + MY</span>
+    <span class="topbar-flag" id="topbar-flag"></span>
+    <span class="topbar-title" id="topbar-title"></span>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span id="today-pill" class="today-pill"></span>
@@ -79,6 +80,8 @@
   </button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.js"></script>
+<script src="js/trip-config.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

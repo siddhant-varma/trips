@@ -1,0 +1,133 @@
+{
+  "center": [
+    1.2847,
+    103.8565
+  ],
+  "zoom": 12,
+  "bbox": [
+    [
+      1.1304,
+      103.5651
+    ],
+    [
+      3.24,
+      101.85
+    ]
+  ],
+  "pois": [
+    {
+      "id": "dash-living-rochor",
+      "name": "Dash Living Rochor (hotel)",
+      "lat": 1.309,
+      "lon": 103.8573,
+      "cluster": "Little India / Rochor",
+      "days": [
+        "Day1",
+        "Day2",
+        "Day3"
+      ],
+      "type": "hotel"
+    },
+    {
+      "id": "arden-food-forest",
+      "name": "1-Arden Food Forest",
+      "lat": 1.3174,
+      "lon": 103.8175,
+      "cluster": "Orchard / Tanglin",
+      "days": [
+        "Day1",
+        "Day2"
+      ],
+      "type": "experience"
+    },
+    {
+      "id": "gardens-bay",
+      "name": "Gardens by the Bay",
+      "lat": 1.2816,
+      "lon": 103.8636,
+      "cluster": "Marina Bay",
+      "days": [
+        "Day2"
+      ],
+      "type": "attraction"
+    },
+    {
+      "id": "uss",
+      "name": "Universal Studios Singapore",
+      "lat": 1.254,
+      "lon": 103.8238,
+      "cluster": "Sentosa",
+      "days": [
+        "Day3"
+      ],
+      "type": "attraction"
+    },
+    {
+      "id": "wings-of-time",
+      "name": "Wings of Time",
+      "lat": 1.2527,
+      "lon": 103.822,
+      "cluster": "Sentosa",
+      "days": [
+        "Day3"
+      ],
+      "type": "attraction"
+    },
+    {
+      "id": "mount-faber",
+      "name": "Mount Faber / SkyPass Cable Car",
+      "lat": 1.2756,
+      "lon": 103.8205,
+      "cluster": "Sentosa",
+      "days": [
+        "Day3"
+      ],
+      "type": "attraction"
+    },
+    {
+      "id": "bounce-robinson",
+      "name": "Bounce Luggage — QT Singapore",
+      "lat": 1.28,
+      "lon": 103.8497,
+      "cluster": "Marina Bay",
+      "days": [
+        "Day7"
+      ],
+      "type": "service"
+    },
+    {
+      "id": "tbs-kl",
+      "name": "TBS Bus Terminal (KL departure)",
+      "lat": 3.0703,
+      "lon": 101.7228,
+      "cluster": "Kuala Lumpur",
+      "days": [
+        "Day7"
+      ],
+      "type": "transport"
+    },
+    {
+      "id": "hotel-royal-signature",
+      "name": "Hotel Royal Signature (KL)",
+      "lat": 3.1479,
+      "lon": 101.71,
+      "cluster": "Kuala Lumpur",
+      "days": [
+        "Day5",
+        "Day6"
+      ],
+      "type": "hotel"
+    },
+    {
+      "id": "petrosains-klcc",
+      "name": "Petrosains / Petronas Twin Towers",
+      "lat": 3.1578,
+      "lon": 101.7123,
+      "cluster": "Kuala Lumpur",
+      "days": [
+        "Day5"
+      ],
+      "type": "attraction"
+    }
+  ]
+}
