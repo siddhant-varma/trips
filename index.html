@@ -105,6 +105,25 @@
 
   /* ── Empty ── */
   .empty { text-align: center; padding: 4rem 1rem; color: var(--text3); }
+  /* ── Search ── */
+  [hidden] { display: none !important; }
+  .search-wrap { max-width: 900px; margin: 0 auto; padding: 1.25rem 1rem 0; }
+  .search-input {
+    width: 100%; padding: .7rem 1rem; border-radius: 12px; font-size: .9rem;
+    background: var(--bg2); color: var(--text); border: 1px solid var(--border);
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+  .results { max-width: 900px; margin: 0 auto; padding: .75rem 1rem; }
+  .results-trip { font-size: .75rem; font-weight: 700; color: var(--accent); margin: .9rem 0 .4rem; }
+  .result {
+    display: block; padding: .6rem .8rem; margin-bottom: .4rem; border-radius: 10px;
+    background: var(--bg2); border: 1px solid var(--border); color: inherit; text-decoration: none;
+  }
+  .result:hover { border-color: var(--accent); }
+  .result-meta { font-size: .7rem; color: var(--text3); margin-bottom: 2px; }
+  .result-text { font-size: .8rem; color: var(--text2); line-height: 1.45; }
+  .result mark { background: none; color: var(--accent2); font-weight: 700; }
+
 </style>
 </head>
 <body>
@@ -114,6 +133,11 @@
   <h1>Trips by Sid</h1>
   <p>Trip PWAs — offline itineraries, bookings, maps & weather</p>
 </div>
+
+<div class="search-wrap">
+  <input id="q" class="search-input" type="search" placeholder="Search all trips — places, food, tips…" autocomplete="off" disabled>
+</div>
+<div class="results" id="results" hidden></div>
 
 <div class="section-label">All Trips</div>
 
@@ -135,11 +159,63 @@ const TRIPS = [
   }
 ];
 
+/* ── Cross-trip search ──
+   ponytail: AND-of-substrings over ~500 entries/trip; Fuse.js if typo tolerance is ever wanted */
+const TAB_ORDER = ["itinerary", "masterlist", "bookings", "weather", "budget", "essentials"];
+
+async function initSearch(trips) {
+  const input = document.getElementById("q");
+  const results = document.getElementById("results");
+  const grid = document.getElementById("grid");
+  const loaded = await Promise.all(trips.map(t =>
+    fetch(`trips/${t.slug}/search-index.json`).then(r => r.ok ? r.json() : null).catch(() => null)
+  ));
+  const entries = loaded.filter(Boolean).flatMap(idx =>
+    idx.entries.map(e => ({ ...e, trip: idx.trip, slug: idx.slug, hay: `${e.field} ${e.text}`.toLowerCase() }))
+  );
+  if (!entries.length) { input.placeholder = "Search unavailable — no search-index.json found"; return; }
+  input.disabled = false;
+
+  input.addEventListener("input", () => {
+    const terms = input.value.toLowerCase().split(/\s+/).filter(t => t.length > 1);
+    results.hidden = !terms.length;
+    grid.hidden = !!terms.length;
+    if (!terms.length) return;
+    const rank = t => (TAB_ORDER.indexOf(t) + 1) || 99;
+    const hits = entries.filter(e => terms.every(t => e.hay.includes(t)))
+      .sort((a, b) => rank(a.tab) - rank(b.tab)).slice(0, 50);
+    if (!hits.length) { results.innerHTML = `<div class="empty">No matches.</div>`; return; }
+    const byTrip = Object.groupBy ? Object.groupBy(hits, h => h.trip)
+      : hits.reduce((a, h) => ((a[h.trip] ||= []).push(h), a), {});
+    results.innerHTML = Object.entries(byTrip).map(([trip, hs]) =>
+      `<div class="results-trip">${esc(trip)} · ${hs.length}${hs.length === 50 ? "+" : ""}</div>` +
+      hs.map(h => `<a class="result" href="trips/${esc(h.slug)}/${esc(h.url)}">
+        <div class="result-meta">${esc(h.tab)} · ${highlight(h.field, terms)}</div>
+        <div class="result-text">${highlight(snippet(h.text, terms[0]), terms)}</div>
+      </a>`).join("")
+    ).join("");
+  });
+}
+
+function snippet(text, term) {
+  const i = text.toLowerCase().indexOf(term);
+  if (i < 0 || text.length <= 160) return text.slice(0, 160);
+  const start = Math.max(0, i - 60);
+  return (start ? "…" : "") + text.slice(start, start + 160) + (start + 160 < text.length ? "…" : "");
+}
+
+function highlight(text, terms) {
+  // escape first, then mark — terms are regex-escaped and matched case-insensitively
+  const re = new RegExp(`(${terms.map(t => esc(t).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+  return esc(text).replace(re, "<mark>$1</mark>");
+}
+
 function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 const grid = document.getElementById("grid");
+initSearch(TRIPS);
 
 if (!TRIPS.length) {
   grid.innerHTML = `<div class="empty">No trips yet.</div>`;
