@@ -35,7 +35,7 @@ const TRIP_CONFIG = {
     "Budget ceiling decision (₹1.55L cap vs ₹1.82-1.97L estimate)",
   ],
 
-  swCacheName: "trip-cache-v11",
+  swCacheName: "trip-cache-v12",
 
   dataFiles: [
     "itinerary","masterlist","budget","clusters",

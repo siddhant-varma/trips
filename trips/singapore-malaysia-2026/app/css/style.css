@@ -360,17 +360,6 @@ input.search-box:focus { border-color: var(--accent); }
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* ── Map ─────────────────────────────────────────────────────── */
-.map-img {
-  width: 100%; border-radius: var(--radius);
-  border: 1px solid var(--border);
-  margin-bottom: 8px;
-}
-.map-note {
-  font-size: 0.75rem; color: var(--text-3);
-  text-align: center; margin-bottom: 12px;
-}
-
 /* ── Notes textarea ──────────────────────────────────────────── */
 textarea.notes-area {
   width: 100%; min-height: 260px; padding: 12px 14px;
