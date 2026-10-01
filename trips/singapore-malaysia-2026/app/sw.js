@@ -33,29 +33,7 @@ const STATIC = [
    missing file won't break install. Paths are relative to the app root.
    Example: "./vouchers/jan-01-flight-del-jfk.pdf"
 */
-const VOUCHERS = [
-  "./vouchers/sep-21-flight-del-sin-return.pdf",
-  "./vouchers/sep-21-hotel-dash-living-rochor.pdf",
-  "./vouchers/sep-21-1-arden-sky-garden-evening.pdf",
-  "./vouchers/sep-22-cloud-forest-flower-dome.pdf",
-  "./vouchers/sep-22-grab-travel-pass.pdf",
-  "./vouchers/sep-22-1-arden-sky-garden-evening.pdf",
-  "./vouchers/sep-23-universal-studios-singapore.pdf",
-  "./vouchers/sep-23-cable-car-skypass-premium.pdf",
-  "./vouchers/sep-23-skyline-luge.pdf",
-  "./vouchers/sep-23-wings-of-time.pdf",
-  "./vouchers/sep-24-bus-sg-to-kl.pdf",
-  "./vouchers/sep-25-hotel-royal-signature.pdf",
-  "./vouchers/sep-25-petronas-skybridge.pdf",
-  "./vouchers/sep-26-w-kl-rooftop-pool.pdf",
-  "./vouchers/sep-26-bus-kl-to-sg.pdf",
-  "./vouchers/2026-08-06-singapore-visa-approved-siddhant-varma.pdf",
-  "./vouchers/2026-08-06-singapore-visa-cover-letter-prabha-singh.pdf",
-  "./vouchers/2026-08-06-singapore-visa-cover-letter-siddhant-varma.pdf",
-  "./vouchers/2026-09-15-travel-insurance-icici-lombard-siddhant.pdf",
-  "./vouchers/2026-09-15-travel-insurance-icici-lombard-prabha.pdf",
-  "./vouchers/2026-09-15-travel-insurance-chubb-siddhant.pdf"
-];
+const VOUCHERS = [];
 
 self.addEventListener("install", e => {
   e.waitUntil(
