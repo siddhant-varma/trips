@@ -1137,12 +1137,18 @@ function renderExpenses() {
       <button id="exp-add" class="sync-btn" style="align-self:flex-end;padding:8px 18px;border-radius:8px;font-size:0.82rem;font-weight:600;background:var(--accent);color:#000;border:none;cursor:pointer">+ Add</button>
     </div>`;
 
-  const listHtml = exps.length
-    ? `<div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
-        <span>Entries <span style="font-size:0.72rem;color:var(--text-3);font-weight:400">${exps.length} total</span></span>
-        <button class="exp-csv-btn" onclick="downloadExpensesCSV()" style="font-size:0.72rem;padding:4px 10px;border-radius:6px;background:var(--bg2);color:var(--text-2);border:1px solid var(--border);cursor:pointer;font-weight:600">↓ CSV</button>
-      </div>` +
-      exps.slice().reverse().map((e, ri) => {
+  const listHeader = `<div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Entries <span style="font-size:0.72rem;color:var(--text-3);font-weight:400">${exps.length} total</span></span>
+    <div style="display:flex;gap:4px">
+      <label class="exp-csv-btn" style="font-size:0.72rem;padding:4px 10px;border-radius:6px;background:var(--bg2);color:var(--text-2);border:1px solid var(--border);cursor:pointer;font-weight:600">
+        ↑ CSV <input type="file" id="exp-import-csv" accept=".csv" style="display:none">
+      </label>
+      <button class="exp-csv-btn" onclick="downloadExpensesCSV()" style="font-size:0.72rem;padding:4px 10px;border-radius:6px;background:var(--bg2);color:var(--text-2);border:1px solid var(--border);cursor:pointer;font-weight:600" ${!exps.length ? 'disabled style="opacity:0.5"' : ''}>↓ CSV</button>
+    </div>
+  </div>`;
+
+  const listHtml = listHeader + (exps.length
+    ? exps.slice().reverse().map((e, ri) => {
         const i = exps.length - 1 - ri;
         const home = Math.round(e.amount * (toHome[e.currency]||1));
         return `<div class="card optional" data-exp-idx="${i}">
@@ -1159,7 +1165,7 @@ function renderExpenses() {
           </div>
         </div>`;
       }).join("")
-    : `<div class="empty-state"><div>No expenses logged yet</div></div>`;
+    : `<div class="empty-state"><div>No expenses logged yet</div></div>`);
 
   return summaryHtml + formHtml + `<div id="exp-list">${listHtml}</div>`;
 }
@@ -1189,6 +1195,66 @@ function wireExpenses() {
     saveExpenses(exps);
     go("expenses");
   });
+
+  const importInput = document.getElementById("exp-import-csv");
+  if (importInput) {
+    importInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => importExpensesCSV(ev.target.result);
+      reader.readAsText(file);
+      importInput.value = ""; // Reset input
+    });
+  }
+}
+
+function importExpensesCSV(csvText) {
+  const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) { alert("CSV seems empty or missing headers."); return; }
+  
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  const dateIdx = headers.findIndex(h => h.includes('date'));
+  const noteIdx = headers.findIndex(h => h.includes('description') || h.includes('note'));
+  const amtIdx = headers.findIndex(h => h.includes('amount'));
+  const curIdx = headers.findIndex(h => h.includes('currency'));
+
+  let added = 0;
+  const exps = loadExpenses();
+  
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+    if (!cols.length) continue;
+    
+    // Fallbacks if header mapping fails
+    const dStr = dateIdx >= 0 ? cols[dateIdx] : cols[0];
+    const nStr = noteIdx >= 0 ? cols[noteIdx] : cols[1];
+    const aStr = amtIdx >= 0 ? cols[amtIdx] : cols[2];
+    const cStr = curIdx >= 0 ? cols[curIdx] : cols[3];
+
+    if (!aStr) continue;
+    const amt = parseFloat(aStr);
+    if (isNaN(amt)) continue;
+    
+    let ts = Date.now();
+    if (dStr) {
+       const parsed = Date.parse(dStr);
+       if (!isNaN(parsed)) ts = parsed;
+    }
+    
+    const currency = (cStr || TRIP_CONFIG.homeCurrency).toUpperCase();
+    const category = "Imported";
+    
+    exps.push({ ts, amount: amt, currency, category, note: nStr || "" });
+    added++;
+  }
+  
+  if (added > 0) {
+    saveExpenses(exps);
+    go("expenses");
+  } else {
+    alert("No valid expense rows found in CSV.");
+  }
 }
 
 function downloadExpensesCSV() {

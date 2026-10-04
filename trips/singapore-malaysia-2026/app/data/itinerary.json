@@ -500,7 +500,7 @@
           "type": "must",
           "activity": "Quick shower/change → transit to KLCC (~10-15min) → Petronas Skybridge, Sky Xperience Evening Experience, BOOKED 18:30 entry (check-in by 18:15)",
           "cluster": "Bukit Bintang → KLCC",
-          "notes": "BOOKED — confirmation [ref]. Non-refundable, non-transferable. Timed for sunset (~7:27pm) transition — arrive-by-18:15 to 18:30 entry, ~45-60min visit carries through dusk into night-lit skyline. No dress code (Priority Access only)",
+          "notes": "BOOKED — timed for sunset (~7:27pm) transition — arrive-by-18:15 to 18:30 entry, ~45-60min visit carries through dusk into night-lit skyline. No dress code (Priority Access only)",
           "urlKeys": [
             "petronas-skybridge"
           ]
@@ -605,7 +605,7 @@
           "type": "must",
           "activity": "Board bus, TBS, 00:15 (dated 27 Sep), Cosmic Singapore Express",
           "cluster": "TBS",
-          "notes": "Confirmed booking, seats 5B+5C, [ref]"
+          "notes": "Confirmed booking, seats 5B+5C"
         }
       ]
     },
@@ -714,7 +714,7 @@
           "type": "must",
           "activity": "Proceed to gate, flight SIN→DEL, 19:45",
           "cluster": "Changi Airport",
-          "notes": "[ref] — gate by ~19:15-19:20"
+          "notes": "Gate by ~19:15-19:20"
         }
       ]
     }
