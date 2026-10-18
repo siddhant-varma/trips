@@ -71,8 +71,14 @@ function badge(text, cls = "") {
 }
 
 function typeBadge(type) {
-  const map = { must:"badge-must", optional:"badge-optional", booked:"badge-booked", critical:"badge-critical" };
-  return badge(type, map[type] || "");
+  const map = {
+    must:     { label: "⭐ MUST",   cls: "badge-must" },
+    optional: { label: "➕ OPT",    cls: "badge-optional" },
+    booked:   { label: "🔒 BOOKED", cls: "badge-booked" },
+    critical: { label: "🚨 CRIT",   cls: "badge-critical" },
+  };
+  const m = map[type];
+  return m ? badge(m.label, m.cls) : badge(type, "");
 }
 
 function esc(s) {
@@ -122,20 +128,30 @@ function weatherRiskBadge(urlKeys) {
   return `<span class="risk-badge ${cls}" title="Weather risk: ${worst}">${icon} ${worst}</span>`;
 }
 
-/* ── urlKey → voucher index (built once after data loads) ───── */
+/* ── urlKey → voucher index & booked status (built once after data loads) ───── */
 let _voucherIndex = null;
+let _bookedKeySet = null;
 function getVoucherIndex() {
   if (_voucherIndex) return _voucherIndex;
   _voucherIndex = {};
+  _bookedKeySet = new Set();
   (D["bookings-display"]?.bookings || []).forEach(b => {
     (b.urlKeys || []).forEach(key => {
+      if (b.status === "booked") _bookedKeySet.add(key);
       if (!_voucherIndex[key]) _voucherIndex[key] = [];
-      b.vouchers.forEach(v => {
+      (b.vouchers || []).forEach(v => {
         if (!_voucherIndex[key].includes(v)) _voucherIndex[key].push(v);
       });
     });
   });
   return _voucherIndex;
+}
+
+function isBlockBooked(block) {
+  getVoucherIndex();
+  if (block.type === "booked") return true;
+  if (/\bBOOKED\b/i.test(block.activity || "")) return true;
+  return (block.urlKeys || []).some(k => _bookedKeySet?.has(k));
 }
 
 function voucherButtonsForKeys(urlKeys) {
@@ -159,47 +175,55 @@ function blockCard(block, dayIdx, bIdx) {
   const expandId = uid();
 
   const linked = (block.urlKeys||[])[0] && urls[(block.urlKeys||[])[0]];
-  const actHtml = linked
-    ? `<a href="${urls[block.urlKeys[0]]}" target="_blank" rel="noopener">${esc(block.activity)}</a>`
-    : esc(block.activity);
-
-  const tips = (block.urlKeys||[]).flatMap(k => tipsMap[k]||[]);
+  const allTipKeys = [...new Set([...(block.urlKeys||[]), ...(block.tipKeys||[])])];
+  const tips = allTipKeys.flatMap(k => tipsMap[k]||[]);
   const alts = (block.altKeys||[]).flatMap(k => altsMap[k]||[]);
-  const hasMore = tips.length || alts.length;
+  const noteStr = Array.isArray(block.notes) ? block.notes.join(" · ") : (block.notes || "");
 
   const voucherHtml = voucherButtonsForKeys(block.urlKeys || []);
   const weatherBadge = weatherRiskBadge(block.urlKeys || []);
+  const booked = isBlockBooked(block);
 
-  const activityFull = block.activity;
+  const activityFull = block.activity || "";
   const activityShort = activityFull.split(/\s[—→]\s|\n/)[0].replace(/\s*[,;]\s*$/, "").trim();
   const isLong = activityFull.length > activityShort.length + 10;
+  const hasMore = tips.length || alts.length || isLong || noteStr.length > 0;
 
   const shortHtml = linked
     ? `<a href="${urls[block.urlKeys[0]]}" target="_blank" rel="noopener">${esc(activityShort)}</a>`
     : esc(activityShort);
 
-  const moreHtml = (hasMore || isLong) ? `
-    <button class="more-toggle" data-target="${expandId}">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      Details
-    </button>
+  const moreHtml = hasMore ? `
+    <div class="card-actions-row">
+      <button class="more-toggle" data-target="${expandId}" aria-expanded="false">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <span>Details</span>
+      </button>
+      <button class="sheet-open-btn" data-card-sheet="${cardId}" title="Open in bottom sheet">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+        <span>Sheet</span>
+      </button>
+    </div>
     <div id="${expandId}" class="more-panel hidden">
-      ${isLong ? `<div class="more-tips" style="margin-bottom:${tips.length||alts.length?'8px':'0'}">${esc(activityFull)}</div>` : ""}
+      ${isLong ? `<div class="more-tips" style="margin-bottom:${tips.length||alts.length||noteStr?'8px':'0'}">${esc(activityFull)}</div>` : ""}
+      ${noteStr ? `<div class="more-tips" style="color:var(--accent-text);margin-bottom:${tips.length||alts.length?'8px':'0'}">⚠ ${esc(noteStr)}</div>` : ""}
       ${tips.length ? `<div class="more-tips">${tips.map(t=>`• ${esc(t)}`).join("<br>")}</div>` : ""}
-      ${alts.length ? `<div class="more-alts">${alts.map(a=>`↳ <b>${esc(a.name)}</b> — ${esc(a.reason)}`).join("<br>")}</div>` : ""}
-      ${block.notes ? `<div class="more-tips" style="color:var(--accent-text)">⚠ ${esc(block.notes)}</div>` : ""}
+      ${alts.length ? `<div class="more-alts">${alts.map(a=>`↳ <b>${esc(a.name)}</b> — ${esc(a.reason||a.note||"")}`).join("<br>")}</div>` : ""}
     </div>` : "";
 
-  const typeClass = block.type === "must" ? "must" : block.type === "critical" ? "critical" : "optional";
+  const typeClass = booked && block.type !== "critical" && block.type !== "must"
+    ? "booked"
+    : block.type === "must" ? "must" : block.type === "critical" ? "critical" : "optional";
 
-  return `<div class="card ${typeClass} ${done ? "card-done" : ""}" data-card-id="${cardId}">
+  return `<div class="card ${typeClass} ${done ? "card-done" : ""}" data-card-id="${cardId}" data-day-idx="${dayIdx}" data-b-idx="${bIdx}">
     <div class="card-row-top">
       <div class="card-meta">
-        ${badge(block.block)}
+        ${badge(block.block, "badge-time")}
+        ${booked && block.type !== "booked" ? badge("🔒 BOOKED", "badge-booked") : ""}
         ${typeBadge(block.type)}
         ${weatherBadge}
       </div>
-      <button class="done-btn ${done ? "done-btn-active" : ""}" data-id="${cardId}" title="Mark done">
+      <button class="done-btn ${done ? "done-btn-active" : ""}" data-id="${cardId}" aria-label="Mark done" title="Mark done">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
       </button>
     </div>
@@ -231,10 +255,77 @@ function wireMoreToggles(root) {
       if (!panel) return;
       const open = !panel.classList.contains("hidden");
       panel.classList.toggle("hidden", open);
+      btn.setAttribute("aria-expanded", String(!open));
       const svg = btn.querySelector("svg");
       if (svg) svg.style.transform = open ? "" : "rotate(180deg)";
     });
   });
+  (root || document).querySelectorAll(".sheet-open-btn").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const card = btn.closest(".card");
+      if (!card) return;
+      const dayIdx = parseInt(card.dataset.dayIdx, 10);
+      const bIdx = parseInt(card.dataset.bIdx, 10);
+      const dayObj = D.itinerary?.days?.[dayIdx];
+      const block = dayObj?.blocks?.[bIdx];
+      if (block) openDetailSheet(block, dayObj);
+    });
+  });
+}
+
+function openDetailSheet(block, dayObj) {
+  let dlg = document.getElementById("detail-sheet");
+  if (!dlg) {
+    dlg = document.createElement("dialog");
+    dlg.id = "detail-sheet";
+    dlg.className = "bottom-sheet";
+    dlg.setAttribute("closedby", "any");
+    dlg.setAttribute("aria-label", "Activity details");
+    document.body.appendChild(dlg);
+    if (!("closedBy" in HTMLDialogElement.prototype)) {
+      dlg.addEventListener("click", ev => {
+        if (ev.target !== dlg) return;
+        const rect = dlg.getBoundingClientRect();
+        const inside = rect.top <= ev.clientY && ev.clientY <= rect.top + rect.height &&
+                       rect.left <= ev.clientX && ev.clientX <= rect.left + rect.width;
+        if (!inside) dlg.close();
+      });
+    }
+  }
+  const urls = D.urls?.urls || {};
+  const tipsMap = D.tips?.tips || {};
+  const altsMap = D.alternates?.alternates || {};
+  const allTipKeys = [...new Set([...(block.urlKeys||[]), ...(block.tipKeys||[])])];
+  const tips = allTipKeys.flatMap(k => tipsMap[k]||[]);
+  const alts = (block.altKeys||[]).flatMap(k => altsMap[k]||[]);
+  const noteStr = Array.isArray(block.notes) ? block.notes.join(" · ") : (block.notes || "");
+  const voucherHtml = voucherButtonsForKeys(block.urlKeys || []);
+  const booked = isBlockBooked(block);
+  const linksHtml = (block.urlKeys||[]).filter(k => urls[k]).map(k =>
+    `<a class="voucher-btn" href="${esc(urls[k])}" target="_blank" rel="noopener">🔗 ${esc(k.replace(/-/g, " "))} ↗</a>`
+  ).join("");
+
+  dlg.innerHTML = `
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="card-meta" style="margin-bottom:0">
+        ${dayObj ? badge(`${dayObj.day} · ${dayObj.city}`) : ""}
+        ${badge(block.block, "badge-time")}
+        ${booked ? badge("🔒 BOOKED", "badge-booked") : ""}
+        ${typeBadge(block.type)}
+      </div>
+      <button class="sheet-close-btn" aria-label="Close details" onclick="document.getElementById('detail-sheet').close()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <h3 class="sheet-title">${esc(block.activity)}</h3>
+      ${block.cluster ? `<div class="card-cluster" style="margin-bottom:10px">📍 ${esc(block.cluster)}</div>` : ""}
+      ${noteStr ? `<div class="sheet-section sheet-warn"><strong>⚠️ Timing & Notes</strong><div>${esc(noteStr)}</div></div>` : ""}
+      ${tips.length ? `<div class="sheet-section"><strong>💡 Insider Tips</strong><ul>${tips.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
+      ${alts.length ? `<div class="sheet-section"><strong>🔀 Alternates / Backups</strong><ul>${alts.map(a=>`<li><b>${esc(a.name)}</b> — ${esc(a.reason||a.note||"")}</li>`).join("")}</ul></div>` : ""}
+      ${(voucherHtml || linksHtml) ? `<div class="sheet-links">${voucherHtml}${linksHtml}</div>` : ""}
+    </div>`;
+  dlg.showModal();
 }
 
 /* ── TODAY ───────────────────────────────────────────────────── */
@@ -508,13 +599,28 @@ function wireBudget() {
 
 /* ── MAP ─────────────────────────────────────────────────────── */
 const CLUSTER_COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
+const MAP_DAY_KEY = "trip-map-day";
 let _mapInst = null;
 let _mapCfg = null;
 
+function getSavedMapDay() {
+  try {
+    const saved = localStorage.getItem(MAP_DAY_KEY);
+    if (!saved || saved === "All") return "All";
+    const validDays = (D.itinerary?.days || []).map(d => d.day);
+    return validDays.includes(saved) ? saved : "All";
+  } catch { return "All"; }
+}
+
+function setSavedMapDay(day) {
+  try { localStorage.setItem(MAP_DAY_KEY, day || "All"); } catch {}
+}
+
 function renderMap() {
   const days = D.itinerary?.days || [];
-  const chips = ['All', ...days.map(d => d.day)].map((d, i) =>
-    `<button class="day-chip ${i===0?'active':''}" data-day="${esc(d)}">${esc(d)}</button>`
+  const activeDay = getSavedMapDay();
+  const chips = ['All', ...days.map(d => d.day)].map(d =>
+    `<button class="day-chip ${d===activeDay?'active':''}" data-day="${esc(d)}">${esc(d)}</button>`
   ).join('');
   return `
     <div class="map-day-filter">${chips}</div>
@@ -538,6 +644,10 @@ async function wireMap() {
     container.innerHTML = emptyState('No map data yet.');
     return;
   }
+  if (_mapInst) {
+    try { _mapInst.remove(); } catch {}
+    _mapInst = null;
+  }
   _mapInst = new maplibregl.Map({
     container: 'map-gl',
     style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -545,14 +655,21 @@ async function wireMap() {
     zoom: _mapCfg.zoom ?? 12,
     attributionControl: { compact: true },
   });
+  // Suppress noisy tile errors when offline for unvisited zoom levels
+  _mapInst.on('error', () => {});
+
+  const savedDay = getSavedMapDay();
+  const initDay = savedDay === 'All' ? null : savedDay;
   renderLegend();
-  addPOIMarkers(null); // ponytail: DOM markers don't need 'load' (which waits for every tile)
+  addPOIMarkers(initDay); // ponytail: DOM markers don't need 'load' (which waits for every tile)
+  renderDayPanel(initDay);
 
   document.querySelectorAll('.day-chip').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.day-chip').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const day = btn.dataset.day === 'All' ? null : btn.dataset.day;
+      setSavedMapDay(btn.dataset.day);
       addPOIMarkers(day);
       renderDayPanel(day);
     });
@@ -574,6 +691,8 @@ function addPOIMarkers(dayFilter) {
     el.className = 'map-marker';
     el.style.cssText = `background:${color}`;
     el.textContent = dayFilter ? idx + 1 : '';
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', poi.name);
 
     const popup = new maplibregl.Popup({ offset: 16, maxWidth: '220px' }).setHTML(`
       <div class="map-popup">
@@ -595,11 +714,15 @@ function addPOIMarkers(dayFilter) {
   drawRoute(dayFilter ? filtered.map(p => [p.lon, p.lat]) : []);
 
   if (dayFilter && filtered.length) {
-    const b = new maplibregl.LngLatBounds();
-    filtered.forEach(p => b.extend([p.lon, p.lat]));
-    _mapInst.fitBounds(b, { padding: 64, maxZoom: 15 });
+    try {
+      const b = new maplibregl.LngLatBounds();
+      filtered.forEach(p => b.extend([p.lon, p.lat]));
+      _mapInst.fitBounds(b, { padding: 64, maxZoom: 15, duration: 300 });
+    } catch {}
   } else if (!dayFilter) {
-    _mapInst.easeTo({ center: [_mapCfg.center[1], _mapCfg.center[0]], zoom: _mapCfg.zoom ?? 12 });
+    try {
+      _mapInst.easeTo({ center: [_mapCfg.center[1], _mapCfg.center[0]], zoom: _mapCfg.zoom ?? 12, duration: 300 });
+    } catch {}
   }
 }
 
@@ -622,14 +745,17 @@ let _routeCoords = [];
 function drawRoute(coords) {
   _routeCoords = coords;
   const apply = () => {
+    if (!_mapInst) return;
     const data = { type: 'Feature', geometry: { type: 'LineString', coordinates: _routeCoords } };
     try {
       const src = _mapInst.getSource('day-route');
-      if (src) return src.setData(data);
+      if (src) { src.setData(data); return; }
       _mapInst.addSource('day-route', { type: 'geojson', data });
       _mapInst.addLayer({ id: 'day-route', type: 'line', source: 'day-route',
         paint: { 'line-color': '#f97316', 'line-width': 3, 'line-dasharray': [2, 1.5] } });
-    } catch { _mapInst.once('styledata', apply); } // style not ready yet — retry with latest coords
+    } catch {
+      _mapInst.once('styledata', apply); // style not ready yet — retry on styledata
+    }
   };
   apply();
 }
@@ -1075,8 +1201,9 @@ function wireWeather() {
   });
 }
 
-/* ── EXPENSES ────────────────────────────────────────────────── */
+/* ── EXPENSES & CSV IMPORT (F5 / S9) ─────────────────────────── */
 const EXP_KEY = "trip-expenses";
+let _csvPendingRows = [];
 
 function loadExpenses() {
   try { return JSON.parse(localStorage.getItem(EXP_KEY) || "[]"); } catch { return []; }
@@ -1085,11 +1212,19 @@ function saveExpenses(arr) {
   try { localStorage.setItem(EXP_KEY, JSON.stringify(arr)); } catch {}
 }
 
+function expFingerprint(e) {
+  const d = e.date || (e.ts ? new Date(e.ts).toISOString().slice(0, 10) : "");
+  const amt = Number(e.amount || 0).toFixed(2);
+  const cur = String(e.currency || "").toUpperCase();
+  const note = String(e.note || "").trim().toLowerCase();
+  return `${d}|${amt}|${cur}|${note}`;
+}
+
 function renderExpenses() {
   const exps = loadExpenses();
   const ceil = TRIP_CONFIG.spendingCeiling;
   const sym  = TRIP_CONFIG.homeCurrencySymbol;
-  const toHome = TRIP_CONFIG.toHomeCurrency;
+  const toHome = TRIP_CONFIG.toHomeCurrency || {};
 
   const totals = {};
   TRIP_CONFIG.currencies.forEach(c => totals[c] = 0);
@@ -1121,29 +1256,46 @@ function renderExpenses() {
     `<option value="${esc(c)}" ${i===0?"selected":""}>${esc(c)}</option>`
   ).join("");
 
+  const fxPills = Object.entries(toHome)
+    .filter(([c]) => c !== TRIP_CONFIG.homeCurrency)
+    .map(([c, r]) => `<span class="badge">1 ${esc(c)} ≈ ${sym}${esc(r)}</span>`)
+    .join(" ");
+
   const formHtml = `
     <div class="section-title">Add Expense</div>
     <div class="exp-form card optional" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px">
       <div style="display:flex;gap:8px">
         <input type="number" id="exp-amount" class="exp-input" placeholder="Amount" min="0" step="0.01" style="flex:1">
-        <select id="exp-currency" class="exp-input" style="width:80px">${currencyOptions}</select>
+        <select id="exp-currency" class="exp-input" style="width:92px">${currencyOptions}</select>
       </div>
       <div style="display:flex;gap:8px">
         <select id="exp-cat" class="exp-input" style="flex:1">
-          ${TRIP_CONFIG.expenseCategories.map(c=>`<option>${c}</option>`).join("")}
+          ${TRIP_CONFIG.expenseCategories.map(c=>`<option>${esc(c)}</option>`).join("")}
         </select>
-        <input type="text" id="exp-note" class="exp-input" placeholder="Note (optional)" style="flex:2">
+        <input type="text" id="exp-note" class="exp-input" placeholder="Merchant / Note" style="flex:2">
       </div>
-      <button id="exp-add" class="sync-btn" style="align-self:flex-end;padding:8px 18px;border-radius:8px;font-size:0.82rem;font-weight:600;background:var(--accent);color:#000;border:none;cursor:pointer">+ Add</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px">
+        <button type="button" id="csv-toggle-btn" class="csv-import-toggle-btn">📥 Import Bank / Card CSV</button>
+        <button type="button" id="exp-add" class="exp-submit-btn">+ Add</button>
+      </div>
+    </div>
+
+    <div id="csv-import-panel" class="csv-import-panel hidden">
+      <div class="csv-dropzone" id="csv-dropzone">
+        <input type="file" id="exp-import-csv" accept=".csv,text/csv" class="hidden">
+        <div class="csv-dropzone-icon">📄</div>
+        <div class="csv-dropzone-title">Drop bank/card CSV here or <span style="color:var(--accent);text-decoration:underline">browse file</span></div>
+        <div class="csv-dropzone-sub">Columns: <code>Date</code>, <code>Description / Merchant</code>, <code>Amount</code>, <code>Currency</code>, optional <code>Category</code></div>
+        ${fxPills ? `<div class="csv-fx-row">Offline FX: ${fxPills}</div>` : ""}
+      </div>
+      <div id="csv-feedback" class="csv-feedback hidden"></div>
+      <div id="csv-preview-wrap" class="csv-preview-wrap hidden"></div>
     </div>`;
 
   const listHeader = `<div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
     <span>Entries <span style="font-size:0.72rem;color:var(--text-3);font-weight:400">${exps.length} total</span></span>
-    <div style="display:flex;gap:4px">
-      <label class="exp-csv-btn" style="font-size:0.72rem;padding:4px 10px;border-radius:6px;background:var(--bg2);color:var(--text-2);border:1px solid var(--border);cursor:pointer;font-weight:600">
-        ↑ CSV <input type="file" id="exp-import-csv" accept=".csv" style="display:none">
-      </label>
-      <button class="exp-csv-btn" onclick="downloadExpensesCSV()" style="font-size:0.72rem;padding:4px 10px;border-radius:6px;background:var(--bg2);color:var(--text-2);border:1px solid var(--border);cursor:pointer;font-weight:600" ${!exps.length ? 'disabled style="opacity:0.5"' : ''}>↓ CSV</button>
+    <div style="display:flex;gap:6px">
+      <button class="exp-csv-btn" onclick="downloadExpensesCSV()" ${!exps.length ? 'disabled' : ''}>↓ Export CSV</button>
     </div>
   </div>`;
 
@@ -1151,17 +1303,19 @@ function renderExpenses() {
     ? exps.slice().reverse().map((e, ri) => {
         const i = exps.length - 1 - ri;
         const home = Math.round(e.amount * (toHome[e.currency]||1));
+        const dStr = e.date || (e.ts ? new Date(e.ts).toISOString().slice(0, 10) : "");
         return `<div class="card optional" data-exp-idx="${i}">
           <div class="card-row-top">
-            <div class="card-title" style="font-size:0.82rem">${esc(e.note||e.category)}</div>
-            <div style="font-size:0.82rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${esc(e.currency)} ${e.amount.toFixed(2)}</div>
+            <div class="card-title" style="font-size:0.86rem">${esc(e.note||e.category)}</div>
+            <div style="font-size:0.86rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">${esc(e.currency)} ${Number(e.amount).toFixed(2)}</div>
           </div>
-          <div class="card-meta" style="justify-content:space-between">
-            <div>
+          <div class="card-meta" style="justify-content:space-between;margin-bottom:0;margin-top:4px">
+            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+              ${dStr ? `<span class="badge">${esc(dStr)}</span>` : ""}
               <span class="badge">${esc(e.category)}</span>
-              <span class="badge" style="color:var(--text-3)">≈ ${sym}${home.toLocaleString()}</span>
+              <span class="badge" style="color:var(--accent-text)">≈ ${sym}${home.toLocaleString()}</span>
             </div>
-            <button class="exp-del-btn" data-idx="${i}" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:0.9rem;padding:2px 6px" title="Delete">✕</button>
+            <button class="exp-del-btn" data-idx="${i}" aria-label="Delete expense" title="Delete">✕</button>
           </div>
         </div>`;
       }).join("")
@@ -1180,92 +1334,298 @@ function wireExpenses() {
     const note = document.getElementById("exp-note").value.trim();
     if (!amount || amount <= 0) { document.getElementById("exp-amount").focus(); return; }
     const exps = loadExpenses();
-    exps.push({ ts:Date.now(), amount, currency, category, note });
+    const now = Date.now();
+    exps.push({ ts: now, date: new Date(now).toISOString().slice(0, 10), amount, currency, category, note });
     saveExpenses(exps);
     document.getElementById("exp-amount").value = "";
     document.getElementById("exp-note").value = "";
     go("expenses");
   });
+
   document.getElementById("exp-list")?.addEventListener("click", e => {
     const btn = e.target.closest(".exp-del-btn");
     if (!btn) return;
-    const idx = parseInt(btn.dataset.idx);
+    const idx = parseInt(btn.dataset.idx, 10);
     const exps = loadExpenses();
     exps.splice(idx, 1);
     saveExpenses(exps);
     go("expenses");
   });
 
+  const toggleBtn = document.getElementById("csv-toggle-btn");
+  const panel = document.getElementById("csv-import-panel");
+  const dropzone = document.getElementById("csv-dropzone");
   const importInput = document.getElementById("exp-import-csv");
-  if (importInput) {
+
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener("click", () => {
+      panel.classList.toggle("hidden");
+    });
+  }
+
+  function handleCSVFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => showCSVFeedback("Failed to read file. Please check permissions.", "error");
+    reader.onload = ev => stageCSVPreview(String(ev.target?.result || ""));
+    reader.readAsText(file);
+  }
+
+  if (dropzone && importInput) {
+    dropzone.addEventListener("click", () => importInput.click());
+    dropzone.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleCSVFile(file);
+    });
     importInput.addEventListener("change", e => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => importExpensesCSV(ev.target.result);
-      reader.readAsText(file);
-      importInput.value = ""; // Reset input
+      const file = e.target.files?.[0];
+      if (file) handleCSVFile(file);
+      importInput.value = "";
     });
   }
 }
 
-function importExpensesCSV(csvText) {
-  const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  if (lines.length < 2) { alert("CSV seems empty or missing headers."); return; }
-  
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-  const dateIdx = headers.findIndex(h => h.includes('date'));
-  const noteIdx = headers.findIndex(h => h.includes('description') || h.includes('note'));
-  const amtIdx = headers.findIndex(h => h.includes('amount'));
-  const curIdx = headers.findIndex(h => h.includes('currency'));
+function showCSVFeedback(msg, level = "info") {
+  const el = document.getElementById("csv-feedback");
+  if (!el) return;
+  el.className = `csv-feedback csv-feedback-${level}`;
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
 
-  let added = 0;
-  const exps = loadExpenses();
-  
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-    if (!cols.length) continue;
-    
-    // Fallbacks if header mapping fails
-    const dStr = dateIdx >= 0 ? cols[dateIdx] : cols[0];
-    const nStr = noteIdx >= 0 ? cols[noteIdx] : cols[1];
-    const aStr = amtIdx >= 0 ? cols[amtIdx] : cols[2];
-    const cStr = curIdx >= 0 ? cols[curIdx] : cols[3];
+// State-machine CSV parser supporting RFC-4180 quotes, escaped quotes (""), and commas inside quotes
+function parseCSVRecords(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+  const s = text.replace(/^\uFEFF/, ""); // strip BOM if present
 
-    if (!aStr) continue;
-    const amt = parseFloat(aStr);
-    if (isNaN(amt)) continue;
-    
-    let ts = Date.now();
-    if (dStr) {
-       const parsed = Date.parse(dStr);
-       if (!isNaN(parsed)) ts = parsed;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    const next = s[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && next === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        row.push(field.trim());
+        field = "";
+      } else if (ch === "\r" || ch === "\n") {
+        if (ch === "\r" && next === "\n") i++;
+        row.push(field.trim());
+        if (row.some(c => c !== "")) rows.push(row);
+        row = [];
+        field = "";
+      } else {
+        field += ch;
+      }
     }
-    
-    const currency = (cStr || TRIP_CONFIG.homeCurrency).toUpperCase();
-    const category = "Imported";
-    
-    exps.push({ ts, amount: amt, currency, category, note: nStr || "" });
-    added++;
   }
-  
-  if (added > 0) {
+  row.push(field.trim());
+  if (row.some(c => c !== "")) rows.push(row);
+  return rows;
+}
+
+function inferCategory(merchant, rawCat) {
+  const cats = TRIP_CONFIG.expenseCategories || ["Food","Transport","Shopping","Attraction","Accommodation","Misc"];
+  if (rawCat) {
+    const match = cats.find(c => c.toLowerCase() === rawCat.toLowerCase());
+    if (match) return match;
+    return rawCat;
+  }
+  const m = (merchant || "").toLowerCase();
+  if (/grab|uber|mrt|bus|train|taxi|airlines|indigo|scoot|ez-link|simplygo|transit|bounce/.test(m)) return "Transport";
+  if (/hotel|hostel|agoda|booking\.com|airbnb|resort|rochor|inn/.test(m)) return "Accommodation";
+  if (/klook|gardens|universal|museum|petrosains|skypass|cable car|wings|ticket|luge/.test(m)) return "Attraction";
+  if (/cafe|coffee|toast|restaurant|food|hawker|kopitiam|zam zam|bakery|bar|dining|arden|satay|laksa/.test(m)) return "Food";
+  if (/mart|7-eleven|fairprice|uniqlo|mall|shop|souvenir|duty free|mustafa/.test(m)) return "Shopping";
+  return cats.includes("Misc") ? "Misc" : (cats[0] || "Misc");
+}
+
+function normalizeCSVDate(dStr) {
+  if (!dStr) return { date: new Date().toISOString().slice(0, 10), ts: Date.now() };
+  const clean = dStr.trim();
+  // Support YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, or standard JS Date
+  const dmy = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmy) {
+    const [, d, m, y] = dmy;
+    const iso = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    const parsed = Date.parse(iso);
+    if (!isNaN(parsed)) return { date: iso, ts: parsed };
+  }
+  const parsed = Date.parse(clean);
+  if (!isNaN(parsed)) {
+    return { date: new Date(parsed).toISOString().slice(0, 10), ts: parsed };
+  }
+  return { date: clean.slice(0, 10), ts: Date.now() };
+}
+
+function stageCSVPreview(csvText) {
+  const previewWrap = document.getElementById("csv-preview-wrap");
+  if (!previewWrap) return;
+  const rows = parseCSVRecords(csvText);
+  if (rows.length < 2) {
+    showCSVFeedback("CSV must include a header row and at least one transaction row.", "error");
+    previewWrap.classList.add("hidden");
+    return;
+  }
+
+  const headers = rows[0].map(h => h.toLowerCase());
+  const dateIdx = headers.findIndex(h => h.includes("date") || h.includes("time"));
+  const noteIdx = headers.findIndex(h => h.includes("desc") || h.includes("merchant") || h.includes("narration") || h.includes("note") || h.includes("payee") || h.includes("particular"));
+  const amtIdx  = headers.findIndex(h => h.includes("amount") || h.includes("debit") || h.includes("value") || h.includes("cost") || h.includes("spent"));
+  const curIdx  = headers.findIndex(h => h.includes("curr") || h.includes("ccy"));
+  const catIdx  = headers.findIndex(h => h.includes("cat") || h.includes("type"));
+
+  const existing = loadExpenses();
+  const existingKeys = new Set(existing.map(expFingerprint));
+  const batchKeys = new Set();
+  const toHome = TRIP_CONFIG.toHomeCurrency || {};
+  const sym = TRIP_CONFIG.homeCurrencySymbol;
+
+  const parsed = [];
+  let skippedInvalid = 0;
+
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i];
+    if (!cols || !cols.length) continue;
+
+    const dRaw = dateIdx >= 0 ? cols[dateIdx] : cols[0];
+    const nRaw = noteIdx >= 0 ? cols[noteIdx] : cols[1];
+    const aRaw = amtIdx  >= 0 ? cols[amtIdx]  : cols[2];
+    const cRaw = curIdx  >= 0 ? cols[curIdx]  : cols[3];
+    const catRaw = catIdx >= 0 ? cols[catIdx] : cols[4];
+
+    if (aRaw === undefined || aRaw === "") { skippedInvalid++; continue; }
+    // Strip currency symbols or commas inside amount strings like "SGD 45.20" or "1,250.00"
+    const inlineCurMatch = String(aRaw).match(/\b([A-Z]{3})\b/);
+    const cleanAmtStr = String(aRaw).replace(/[^0-9.\-]/g, "");
+    const rawNum = parseFloat(cleanAmtStr);
+    if (isNaN(rawNum) || rawNum === 0) { skippedInvalid++; continue; }
+    const amount = Math.abs(rawNum);
+
+    const { date, ts } = normalizeCSVDate(dRaw);
+    const currency = (cRaw || (inlineCurMatch ? inlineCurMatch[1] : "") || TRIP_CONFIG.currencies[0] || TRIP_CONFIG.homeCurrency).toUpperCase().trim();
+    const note = (nRaw || "Card transaction").trim();
+    const category = inferCategory(note, catRaw);
+    const rate = toHome[currency] || 1;
+    const homeAmount = Math.round(amount * rate);
+
+    const candidate = { ts, date, amount, currency, category, note };
+    const fp = expFingerprint(candidate);
+    const isDup = existingKeys.has(fp) || batchKeys.has(fp);
+    batchKeys.add(fp);
+
+    parsed.push({ ...candidate, rate, homeAmount, isDup, selected: !isDup });
+  }
+
+  if (!parsed.length) {
+    showCSVFeedback(`No valid expense rows found (${skippedInvalid} invalid/empty rows skipped).`, "error");
+    previewWrap.classList.add("hidden");
+    return;
+  }
+
+  _csvPendingRows = parsed;
+  const dupCount = parsed.filter(r => r.isDup).length;
+  const newCount = parsed.length - dupCount;
+  showCSVFeedback(
+    `Parsed ${parsed.length} row${parsed.length===1?"":"s"}: ${newCount} new, ${dupCount} duplicate${dupCount===1?"":"s"} auto-unchecked${skippedInvalid ? `, ${skippedInvalid} invalid skipped` : ""}.`,
+    newCount > 0 ? "ok" : "warn"
+  );
+  renderCSVPreviewTable();
+}
+
+function renderCSVPreviewTable() {
+  const previewWrap = document.getElementById("csv-preview-wrap");
+  if (!previewWrap) return;
+  const sym = TRIP_CONFIG.homeCurrencySymbol;
+  const selectedRows = _csvPendingRows.filter(r => r.selected);
+  const totalHome = selectedRows.reduce((s, r) => s + r.homeAmount, 0);
+
+  const rowsHtml = _csvPendingRows.map((r, idx) => `
+    <label class="csv-preview-row ${r.isDup ? "csv-row-dup" : ""}">
+      <input type="checkbox" class="csv-row-check" data-idx="${idx}" ${r.selected ? "checked" : ""}>
+      <div class="csv-row-main">
+        <div class="csv-row-top">
+          <span class="csv-row-title">${esc(r.note)}</span>
+          <span class="csv-row-amt">${esc(r.currency)} ${r.amount.toFixed(2)}</span>
+        </div>
+        <div class="csv-row-meta">
+          <span class="badge">${esc(r.date)}</span>
+          <span class="badge">${esc(r.category)}</span>
+          <span class="badge" style="color:var(--accent-text)">≈ ${sym}${r.homeAmount.toLocaleString()} <span style="opacity:.7">(@${r.rate})</span></span>
+          ${r.isDup ? `<span class="badge badge-critical">Duplicate</span>` : ""}
+        </div>
+      </div>
+    </label>
+  `).join("");
+
+  previewWrap.innerHTML = `
+    <div class="csv-preview-header">
+      <span>Preview (${selectedRows.length} selected · ≈ ${sym}${totalHome.toLocaleString()})</span>
+      <div style="display:flex;gap:6px">
+        <button type="button" id="csv-cancel-btn" class="exp-csv-btn">Cancel</button>
+        <button type="button" id="csv-commit-btn" class="exp-submit-btn" ${!selectedRows.length ? "disabled" : ""}>
+          Commit ${selectedRows.length} Row${selectedRows.length===1?"":"s"}
+        </button>
+      </div>
+    </div>
+    <div class="csv-preview-list">${rowsHtml}</div>
+  `;
+  previewWrap.classList.remove("hidden");
+
+  previewWrap.querySelectorAll(".csv-row-check").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const idx = parseInt(cb.dataset.idx, 10);
+      if (_csvPendingRows[idx]) _csvPendingRows[idx].selected = cb.checked;
+      renderCSVPreviewTable();
+    });
+  });
+
+  document.getElementById("csv-cancel-btn")?.addEventListener("click", () => {
+    _csvPendingRows = [];
+    previewWrap.classList.add("hidden");
+    document.getElementById("csv-feedback")?.classList.add("hidden");
+  });
+
+  document.getElementById("csv-commit-btn")?.addEventListener("click", () => {
+    const toCommit = _csvPendingRows.filter(r => r.selected).map(({ ts, date, amount, currency, category, note }) => ({
+      ts, date, amount, currency, category, note
+    }));
+    if (!toCommit.length) return;
+    const exps = loadExpenses();
+    exps.push(...toCommit);
     saveExpenses(exps);
+    _csvPendingRows = [];
     go("expenses");
-  } else {
-    alert("No valid expense rows found in CSV.");
-  }
+  });
 }
 
 function downloadExpensesCSV() {
   const exps = loadExpenses();
-  if (!exps.length) { alert("No expenses to export."); return; }
-  const rows = [["timestamp","date","amount","currency","approx_home","category","note"]];
+  if (!exps.length) return;
+  const toHome = TRIP_CONFIG.toHomeCurrency || {};
+  const rows = [["Date","Description","Amount","Currency","Category","ApproxHome"]];
   exps.forEach(e => {
-    const d = new Date(e.ts);
-    const date = d.toISOString().slice(0,10);
+    const date = e.date || (e.ts ? new Date(e.ts).toISOString().slice(0,10) : "");
     const home = Math.round(e.amount * (toHome[e.currency] || 1));
-    rows.push([e.ts, date, e.amount.toFixed(2), e.currency, home, e.category, `"${(e.note||"").replace(/"/g,'""')}"`]);
+    rows.push([date, `"${(e.note||"").replace(/"/g,'""')}"`, Number(e.amount).toFixed(2), e.currency, `"${(e.category||"").replace(/"/g,'""')}"`, home]);
   });
   const csv = rows.map(r => r.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
@@ -1297,7 +1657,7 @@ const TABS = {
 };
 
 const WIRE = {
-  today:      () => { wireDoneButtons(); },
+  today:      () => { wireDoneButtons(); wireMoreToggles(); },
   itinerary:  wireItinerary,
   bookings:   wireBookings,
   budget:     wireBudget,

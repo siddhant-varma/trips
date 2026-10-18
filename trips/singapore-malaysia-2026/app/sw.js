@@ -1,7 +1,7 @@
 /* ── Service Worker ───────────────────────────────────────────────
    Bump CACHE for each new trip (or each significant update).
    ─────────────────────────────────────────────────────────────── */
-const CACHE = "trip-cache-v13"; // keep in sync with TRIP_CONFIG.swCacheName
+const CACHE = "trip-cache-v14"; // keep in sync with TRIP_CONFIG.swCacheName
 
 const STATIC = [
   "./",
@@ -56,6 +56,7 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET") return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -65,16 +66,16 @@ self.addEventListener("fetch", e => {
           caches.open(CACHE).then(c => c.put(e.request, copy));
         }
         return res;
-      }).catch(() => cached);
+      }).catch(() => cached || new Response("", { status: 503, statusText: "Offline" }));
     })
   );
 });
 
-// Manual sync — clears cache, re-fetches STATIC
+// Manual sync — re-fetches STATIC assets while preserving runtime-cached map tiles
 self.addEventListener("message", e => {
   if (e.data === "SYNC") {
-    caches.delete(CACHE).then(() =>
-      caches.open(CACHE).then(c => c.addAll(STATIC))
+    caches.open(CACHE).then(c =>
+      Promise.allSettled(STATIC.map(u => fetch(u, { cache: "reload" }).then(r => r.ok ? c.put(u, r) : null)))
     ).then(() => e.source?.postMessage("SYNC_DONE"));
   }
 });
