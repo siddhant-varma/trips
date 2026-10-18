@@ -83,7 +83,10 @@
           "note": "Optional, easily skippable."
         }
       ],
-      "note": "REAL FORECAST (Sep21 pull): 77% rain chance, 33°C/27°C — higher than the earlier 63% estimate. Arrival-day outdoor plans (1-Arden evening) carry more real risk than previously thought."
+      "note": "REAL FORECAST (Sep21 pull): 77% rain chance, 33°C/27°C — higher than the earlier 63% estimate. Arrival-day outdoor plans (1-Arden evening) carry more real risk than previously thought.",
+      "tempMax": 33,
+      "tempMin": 27,
+      "rainPct": 77
     },
     {
       "day": "Day2",
@@ -134,7 +137,10 @@
           "note": "Show suspended in heavy rain or lightning."
         }
       ],
-      "note": "REAL FORECAST (Sep21 pull): 70% rain chance, 32°C/26°C."
+      "note": "REAL FORECAST (Sep21 pull): 70% rain chance, 32°C/26°C.",
+      "tempMax": 32,
+      "tempMin": 26,
+      "rainPct": 70
     },
     {
       "day": "Day3",
@@ -183,7 +189,10 @@
           "type": "Indoor",
           "note": "Best rain-day backup for Day3 — fully indoor, already on Sentosa."
         }
-      ]
+      ],
+      "tempMax": 32,
+      "tempMin": 26,
+      "rainPct": 84
     },
     {
       "day": "Day4",
@@ -217,7 +226,10 @@
           "note": "Free show — can pause in lightning."
         }
       ],
-      "note": "REAL FORECAST (Sep21 pull): 89% rain chance, 32°C/26°C — now the single wettest day of the trip, overtaking Day3."
+      "note": "REAL FORECAST (Sep21 pull): 89% rain chance, 32°C/26°C — now the single wettest day of the trip, overtaking Day3.",
+      "tempMax": 32,
+      "tempMin": 26,
+      "rainPct": 89
     },
     {
       "day": "Day5",
@@ -250,7 +262,10 @@
           "note": "Enclosed bridge — genuinely low risk. Most expensive booking.",
           "urlKey": "petronas-skybridge"
         }
-      ]
+      ],
+      "tempMax": 32,
+      "tempMin": 24,
+      "rainPct": 55
     },
     {
       "day": "Day6",
@@ -284,7 +299,10 @@
           "type": "Outdoor",
           "note": "Fountain show can pause in heavy rain."
         }
-      ]
+      ],
+      "tempMax": 31,
+      "tempMin": 24,
+      "rainPct": 65
     },
     {
       "day": "Day7",
@@ -309,7 +327,10 @@
           "risk": "LOW",
           "type": "Indoor"
         }
-      ]
+      ],
+      "tempMax": 31,
+      "tempMin": 26,
+      "rainPct": 35
     }
   ],
   "indoorFallbacks": [

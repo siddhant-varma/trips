@@ -1,6 +1,8 @@
 /* ── TRIP CONFIG — Singapore + Malaysia, Sep 2026 ───────────────── */
 const TRIP_CONFIG = {
-  title:     "SG + MY",
+  slug:      "singapore-malaysia-2026",
+  title:     "SG + MY '26",
+  subtitle:  "Singapore + Malaysia 2026",
   flags:     "🇸🇬🇲🇾",
   dateRange: "Sep 21–27, 2026",
   tripStart: "2026-09-21",
@@ -16,11 +18,35 @@ const TRIP_CONFIG = {
     "2026-09-27": "Day7",
   },
 
+  cities: {
+    SIN: {
+      name: "Singapore",
+      flag: "🇸🇬",
+      lat: 1.2903,
+      lon: 103.8519,
+      timezone: "Asia/Singapore",
+      currency: "SGD"
+    },
+    KUL: {
+      name: "Kuala Lumpur",
+      flag: "🇲🇾",
+      lat: 3.1478,
+      lon: 101.6953,
+      timezone: "Asia/Kuala_Lumpur",
+      currency: "MYR"
+    }
+  },
+
+  googleMaps: {
+    apiKey: "",
+    mapId:  ""
+  },
+
   currencies:          ["SGD", "MYR", "INR"],
   homeCurrency:        "INR",
   homeCurrencySymbol:  "₹",
   spendingCeiling:     155000,                 // ₹1.55L
-  toHomeCurrency:      { SGD: 62, MYR: 19, INR: 1 }, // offline approximations, Sep 2026
+  toHomeCurrency:      { SGD: 74.59, MYR: 23.35, INR: 1 }, // live rates Sep 2026
   expenseCategories:   ["Food","Transport","Shopping","Attraction","Accommodation","Misc"],
 
   preTripChecklist: [
@@ -35,11 +61,11 @@ const TRIP_CONFIG = {
     "Budget ceiling decision (₹1.55L cap vs ₹1.82-1.97L estimate)",
   ],
 
-  swCacheName: "trip-cache-v14",
+  swCacheName: "trip-cache-v15",
 
   dataFiles: [
     "itinerary","masterlist","budget","clusters",
-    "bookings","bookings-display","urls","tips",
+    "bookings","urls","tips",
     "alternates","essentials","weather-risks"
   ],
 };

@@ -1,9 +1,9 @@
 {
   "center": [
-    1.2847,
-    103.8565
+    1.2868,
+    103.8545
   ],
-  "zoom": 12,
+  "zoom": 13,
   "bbox": [
     [
       1.1304,
@@ -16,40 +16,146 @@
   ],
   "pois": [
     {
+      "id": "changi-jewel",
+      "name": "Changi Airport & Jewel Rain Vortex",
+      "lat": 1.3602,
+      "lon": 103.9898,
+      "cluster": "Changi Airport",
+      "days": [
+        "Day1",
+        "Day7"
+      ],
+      "type": "attraction",
+      "time": "15:30",
+      "duration": "60m",
+      "status": "primary",
+      "cost": "Free"
+    },
+    {
       "id": "dash-living-rochor",
-      "name": "Dash Living Rochor (hotel)",
+      "name": "Dash Living Rochor (Hotel Base)",
       "lat": 1.309,
       "lon": 103.8573,
       "cluster": "Little India / Rochor",
       "days": [
         "Day1",
         "Day2",
-        "Day3"
+        "Day3",
+        "Day4"
       ],
-      "type": "hotel"
+      "type": "hotel",
+      "time": "Check-in 15:00",
+      "duration": "3N Base",
+      "status": "booked",
+      "cost": "₹22,651"
     },
     {
-      "id": "arden-food-forest",
-      "name": "1-Arden Food Forest",
-      "lat": 1.3174,
-      "lon": 103.8175,
-      "cluster": "Orchard / Tanglin",
+      "id": "zam-zam",
+      "name": "Singapore Zam Zam (Murtabak)",
+      "lat": 1.3023,
+      "lon": 103.8584,
+      "cluster": "Kampong Glam",
+      "days": [
+        "Day1"
+      ],
+      "type": "food",
+      "time": "19:30",
+      "duration": "45m",
+      "status": "primary",
+      "cost": "~S$18"
+    },
+    {
+      "id": "1-arden-capitaspring",
+      "name": "1-Arden Sky Garden (CapitaSpring L51)",
+      "lat": 1.284,
+      "lon": 103.85,
+      "cluster": "Raffles Place",
       "days": [
         "Day1",
         "Day2"
       ],
-      "type": "experience"
+      "type": "attraction",
+      "time": "18:00",
+      "duration": "60m",
+      "status": "booked",
+      "cost": "Free (Booked)"
     },
     {
-      "id": "gardens-bay",
-      "name": "Gardens by the Bay",
-      "lat": 1.2816,
-      "lon": 103.8636,
+      "id": "fort-canning",
+      "name": "Fort Canning Tree Tunnel & Toast Box",
+      "lat": 1.2974,
+      "lon": 103.8463,
+      "cluster": "Clarke Quay / Fort Canning",
+      "days": [
+        "Day2"
+      ],
+      "type": "photo-spot",
+      "time": "07:30",
+      "duration": "90m",
+      "status": "primary",
+      "cost": "Free"
+    },
+    {
+      "id": "merlion-park",
+      "name": "Merlion Park & Waterfront",
+      "lat": 1.2868,
+      "lon": 103.8545,
+      "cluster": "Marina Bay",
+      "days": [
+        "Day1",
+        "Day2"
+      ],
+      "type": "photo-spot",
+      "time": "06:30",
+      "duration": "45m",
+      "status": "primary",
+      "cost": "Free"
+    },
+    {
+      "id": "artscience-mbs",
+      "name": "ArtScience Museum & MBS Sampan Ride",
+      "lat": 1.2863,
+      "lon": 103.8593,
       "cluster": "Marina Bay",
       "days": [
         "Day2"
       ],
-      "type": "attraction"
+      "type": "attraction",
+      "time": "14:00",
+      "duration": "2h 30m",
+      "status": "primary",
+      "cost": "S$16.80/pax"
+    },
+    {
+      "id": "gardens-bay",
+      "name": "Gardens by the Bay (Cloud Forest & Skyway)",
+      "lat": 1.2816,
+      "lon": 103.8636,
+      "cluster": "Marina Bay",
+      "days": [
+        "Day2",
+        "Day4"
+      ],
+      "type": "attraction",
+      "time": "16:30",
+      "duration": "3h",
+      "status": "booked",
+      "cost": "₹4,860"
+    },
+    {
+      "id": "lau-pa-sat",
+      "name": "Lau Pa Sat Satay Street",
+      "lat": 1.2807,
+      "lon": 103.8504,
+      "cluster": "Raffles Place",
+      "days": [
+        "Day2"
+      ],
+      "type": "food",
+      "time": "21:30",
+      "duration": "60m",
+      "status": "optional",
+      "cost": "~S$25"
     },
     {
       "id": "uss",
@@ -60,74 +166,178 @@
       "days": [
         "Day3"
       ],
-      "type": "attraction"
+      "type": "attraction",
+      "time": "10:00",
+      "duration": "4h",
+      "status": "booked",
+      "cost": "₹10,148"
+    },
+    {
+      "id": "skyline-luge",
+      "name": "Skyline Luge Sentosa",
+      "lat": 1.252,
+      "lon": 103.8176,
+      "cluster": "Sentosa",
+      "days": [
+        "Day3"
+      ],
+      "type": "attraction",
+      "time": "16:00",
+      "duration": "90m",
+      "status": "booked",
+      "cost": "S$45/pax"
     },
     {
       "id": "wings-of-time",
-      "name": "Wings of Time",
+      "name": "Wings of Time & Palawan Beach",
       "lat": 1.2527,
       "lon": 103.822,
       "cluster": "Sentosa",
       "days": [
         "Day3"
       ],
-      "type": "attraction"
+      "type": "attraction",
+      "time": "19:40",
+      "duration": "90m",
+      "status": "booked",
+      "cost": "₹4,478"
     },
     {
-      "id": "mount-faber",
-      "name": "Mount Faber / SkyPass Cable Car",
-      "lat": 1.2756,
-      "lon": 103.8205,
-      "cluster": "Sentosa",
+      "id": "maxwell-chinatown",
+      "name": "Maxwell Food Centre & Chinatown",
+      "lat": 1.2803,
+      "lon": 103.8448,
+      "cluster": "Chinatown",
       "days": [
-        "Day3"
+        "Day4"
       ],
-      "type": "attraction"
+      "type": "food",
+      "time": "13:00",
+      "duration": "90m",
+      "status": "primary",
+      "cost": "~S$15"
     },
     {
-      "id": "bounce-robinson",
-      "name": "Bounce Luggage — QT Singapore",
-      "lat": 1.28,
-      "lon": 103.8497,
-      "cluster": "Marina Bay",
+      "id": "clarke-quay-cruise",
+      "name": "Water B Light Show Cruise (Clarke Quay)",
+      "lat": 1.2906,
+      "lon": 103.8465,
+      "cluster": "Clarke Quay",
       "days": [
-        "Day7"
+        "Day4"
       ],
-      "type": "service"
-    },
-    {
-      "id": "tbs-kl",
-      "name": "TBS Bus Terminal (KL departure)",
-      "lat": 3.0703,
-      "lon": 101.7228,
-      "cluster": "Kuala Lumpur",
-      "days": [
-        "Day7"
-      ],
-      "type": "transport"
+      "type": "attraction",
+      "time": "19:30",
+      "duration": "60m",
+      "status": "primary",
+      "cost": "S$40/pax"
     },
     {
       "id": "hotel-royal-signature",
-      "name": "Hotel Royal Signature (KL)",
-      "lat": 3.1479,
-      "lon": 101.71,
-      "cluster": "Kuala Lumpur",
+      "name": "Hotel Royal Signature & LaLaport KL",
+      "lat": 3.1445,
+      "lon": 101.7095,
+      "cluster": "Bukit Bintang",
       "days": [
         "Day5",
         "Day6"
       ],
-      "type": "hotel"
+      "type": "hotel",
+      "time": "Check-in 15:00",
+      "duration": "1N Base",
+      "status": "booked",
+      "cost": "₹4,610"
     },
     {
-      "id": "petrosains-klcc",
-      "name": "Petrosains / Petronas Twin Towers",
-      "lat": 3.1578,
-      "lon": 101.7123,
-      "cluster": "Kuala Lumpur",
+      "id": "petaling-kwai-chai",
+      "name": "Petaling St, Kwai Chai Hong & Lai Foong",
+      "lat": 3.1422,
+      "lon": 101.6968,
+      "cluster": "Chinatown KL",
       "days": [
         "Day5"
       ],
-      "type": "attraction"
+      "type": "food",
+      "time": "11:00",
+      "duration": "2h",
+      "status": "primary",
+      "cost": "~RM 35"
+    },
+    {
+      "id": "petronas-klcc",
+      "name": "Petronas Twin Towers Skybridge & KLCC",
+      "lat": 3.1578,
+      "lon": 101.7123,
+      "cluster": "KLCC",
+      "days": [
+        "Day5",
+        "Day6"
+      ],
+      "type": "attraction",
+      "time": "18:30",
+      "duration": "90m",
+      "status": "booked",
+      "cost": "RM 137/pax"
+    },
+    {
+      "id": "batu-caves",
+      "name": "Batu Caves (272 Rainbow Steps)",
+      "lat": 3.2379,
+      "lon": 101.684,
+      "cluster": "Batu Caves",
+      "days": [
+        "Day6"
+      ],
+      "type": "attraction",
+      "time": "12:30",
+      "duration": "90m",
+      "status": "primary",
+      "cost": "Free"
+    },
+    {
+      "id": "w-kl-wetdeck",
+      "name": "W Kuala Lumpur WET Deck Rooftop Pool",
+      "lat": 3.1588,
+      "lon": 101.7107,
+      "cluster": "KLCC",
+      "days": [
+        "Day6"
+      ],
+      "type": "attraction",
+      "time": "15:00",
+      "duration": "3h",
+      "status": "booked",
+      "cost": "RM 100"
+    },
+    {
+      "id": "tbs-kl",
+      "name": "TBS Bus Terminal (KUL→SIN Departure)",
+      "lat": 3.0772,
+      "lon": 101.7107,
+      "cluster": "Kuala Lumpur",
+      "days": [
+        "Day6"
+      ],
+      "type": "transport",
+      "time": "23:45",
+      "duration": "Boarding",
+      "status": "booked",
+      "cost": "S$25/pax"
+    },
+    {
+      "id": "mustafa-little-india",
+      "name": "Mustafa Centre & Orchard Shopping",
+      "lat": 1.3099,
+      "lon": 103.8557,
+      "cluster": "Little India",
+      "days": [
+        "Day7"
+      ],
+      "type": "shopping",
+      "time": "11:30",
+      "duration": "2h",
+      "status": "primary",
+      "cost": "Varies"
     }
   ]
 }

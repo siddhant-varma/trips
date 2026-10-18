@@ -1,110 +1,379 @@
 {
+  "categories": [
+    "flights",
+    "hotels",
+    "transport",
+    "attractions",
+    "dining",
+    "admin"
+  ],
   "bookings": [
     {
-      "item": "Flights DEL↔SIN (IndiGo, [ref])",
+      "id": "flights-del-sin",
+      "item": "IndiGo Flights DEL ↔ SIN",
+      "short": "IndiGo DEL↔SIN",
+      "date": "Sep 21 & 27",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Sep21 09:05 DEL→SIN / Sep27 19:45 SIN→DEL"
+      "category": "flights",
+      "urlKeys": [],
+      "notes": "Outbound 6E-1013 Sep 21 09:05 DEL→17:45 SIN · Return 6E-1014 Sep 27 19:45 SIN→23:05 DEL · 35kg check-in + 7kg cabin/pax",
+      "passMeta": {
+        "airline": "INDIGO AIRLINES · 6E 1013",
+        "originIata": "DEL",
+        "destIata": "SIN",
+        "originName": "New Delhi IGI · T3",
+        "destName": "Singapore Changi · T2",
+        "depTime": "09:05",
+        "arrTime": "17:45",
+        "duration": "6h 10m · Direct"
+      }
     },
     {
-      "item": "Hotel SIN — Dash Living Rochor",
+      "id": "hotel-sin",
+      "item": "Dash Living Rochor",
+      "short": "Hotel SIN · Sep 21–24",
+      "date": "Sep 21–24 (3N)",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Sep21-24 (3N)"
+      "category": "hotels",
+      "urlKeys": [],
+      "notes": "Little India / Rochor MRT base · 3 nights",
+      "passMeta": {
+        "address": "66A Dunlop St, Little India / Rochor, Singapore 209394",
+        "checkIn": "Sep 21 (15:00)",
+        "checkOut": "Sep 24 (11:00)",
+        "roomType": "Standard Queen · 3 Nights",
+        "lat": 1.309,
+        "lon": 103.8573
+      }
     },
     {
-      "item": "Hotel KUL — Hotel Royal Signature",
+      "id": "1-arden-sep21",
+      "item": "1-Arden Sky Garden — Sep 21",
+      "short": "1-Arden · Sep 21 evening",
+      "date": "Sep 21 · 18:00–22:00",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Sep25-26 (1N)"
+      "category": "attractions",
+      "notes": "Timing risk — land 17:45, go direct from Changi if running behind",
+      "urlKeys": [
+        "1-arden-sky-garden"
+      ],
+      "passMeta": {
+        "venue": "CapitaSpring · Level 51 · Raffles Place",
+        "entrySlot": "18:00–22:00 · 2 Guests",
+        "lat": 1.284,
+        "lon": 103.85
+      }
     },
     {
-      "item": "Bus SIN→KUL — KKKL Express (SVIP Executive)",
+      "id": "cloud-forest",
+      "item": "Cloud Forest + Flower Dome",
+      "short": "Gardens by the Bay · Sep 22",
+      "date": "Sep 22 · Day 2",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Sep24 00:30 (dated 25 Sep), Bugis MRT Exit D → LaLaport Bukit Bintang"
+      "category": "attractions",
+      "urlKeys": [
+        "cloud-forest",
+        "sands-lifestyle",
+        "sampan-ride"
+      ],
+      "notes": "Jurassic World experience included · 2 Adults via Klook",
+      "passMeta": {
+        "venue": "Gardens by the Bay · 18 Marina Gardens Dr",
+        "entrySlot": "16:00–19:00 · 2 Adults (QR Entry)",
+        "lat": 1.2816,
+        "lon": 103.8636
+      }
     },
     {
-      "item": "Bus KUL→SIN — Cosmic Singapore Express (Executive Double Decker)",
+      "id": "grab-pass",
+      "item": "Grab Travel Pass",
+      "short": "Grab Travel Pass · Sep 22",
+      "date": "Sep 22",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Sep26 00:15 (dated 27 Sep), TBS → Boon Lay"
+      "category": "transport",
+      "urlKeys": [
+        "anywheel-cycling"
+      ]
     },
     {
-      "item": "Singapore MEV Visa",
-      "status": "booked",
-      "date": "Approved"
+      "id": "artscience",
+      "item": "ArtScience Museum",
+      "short": "ArtScience · Sep 22 · 14:00–16:00",
+      "date": "Sep 22 · 14:00–16:00",
+      "sortDate": "[phone]",
+      "status": "not-booked",
+      "category": "attractions",
+      "notes": "Book after Sands LifeStyle signup (30% off Future World + Digital Light Canvas combo)",
+      "urlKeys": [
+        "artscience-museum"
+      ]
     },
     {
-      "item": "Petronas Twin Towers Skybridge (Sky Xperience Evening Experience)",
+      "id": "1-arden-sep22-aft",
+      "item": "1-Arden Sky Garden — Sep 22 Afternoon",
+      "short": "1-Arden · Sep 22 · 14:30–17:30",
+      "date": "Sep 22 · 14:30–17:30",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Day5, Sep25 18:30 entry"
+      "category": "attractions",
+      "notes": "Overlaps ArtScience (14:00–16:00) & Cloud Forest (16:00–19:00) — decide which slot to keep",
+      "urlKeys": [
+        "1-arden-sky-garden"
+      ]
     },
     {
+      "id": "1-arden-sep22-eve",
+      "item": "1-Arden Sky Garden — Sep 22 Eve",
+      "short": "1-Arden · Sep 22 evening",
+      "date": "Sep 22 · 18:00–22:00",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "notes": "Backup slot if Sep 21 evening missed",
+      "urlKeys": [
+        "1-arden-sky-garden"
+      ]
+    },
+    {
+      "id": "uss",
       "item": "Universal Studios Singapore",
+      "short": "USS · Sep 23",
+      "date": "Sep 23 · Day 3",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Day3, Sep23"
+      "category": "attractions",
+      "urlKeys": [
+        "uss"
+      ],
+      "passMeta": {
+        "venue": "Resorts World Sentosa · 8 Sentosa Gateway",
+        "entrySlot": "10:00 Open · 2 Adults One-Day Pass",
+        "lat": 1.254,
+        "lon": 103.8238
+      }
     },
     {
-      "item": "Cloud Forest + Flower Dome (Jurassic World)",
+      "id": "cable-car",
+      "item": "Cable Car SkyPass Premium",
+      "short": "Cable Car · Sep 23",
+      "date": "Sep 23 · Day 3",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Day2, Sep22"
+      "category": "attractions",
+      "urlKeys": [
+        "cable-car"
+      ],
+      "notes": "SkyOrb + Sentosa Line + Singapore Sling bundle · Last boarding 21:30"
     },
     {
-      "item": "Lalaspeed E Kart Raceway (LaLaport Bukit Bintang)",
+      "id": "luge",
+      "item": "Skyline Luge (4-Ride Combo)",
+      "short": "Skyline Luge · Sep 23 · 16:00",
+      "date": "Sep 23 · 16:00–17:30",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "urlKeys": [
+        "skyline-luge"
+      ],
+      "notes": "Rescheduled to 16:00 (venue early close) + 2 complimentary 1-Ride tickets added",
+      "passMeta": {
+        "venue": "Skyline Luge Sentosa · Siloso Beach",
+        "entrySlot": "16:00 Timed Entry · 4-Ride Combo + 2 Bonus Rides"
+      }
+    },
+    {
+      "id": "wings-of-time",
+      "item": "Wings of Time + Buffet Dinner",
+      "short": "Wings of Time · Sep 23 · 19:40",
+      "date": "Sep 23 · 19:40 show",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "urlKeys": [
+        "wings-of-time"
+      ],
+      "notes": "Includes Good Old Days Buffet dinner (17:00–22:00, last order 21:00)"
+    },
+    {
+      "id": "water-light-cruise",
+      "item": "Water B Light Show Cruise (Fort Canning)",
+      "short": "Light Cruise · Sep 24 · 19:30",
+      "date": "Sep 24 · 19:30 slot",
+      "sortDate": "[phone]",
       "status": "not-booked",
-      "date": "Day5, early afternoon"
+      "category": "attractions",
+      "notes": "Buy in person at Fort Canning kiosk by 19:15 (check weather first)",
+      "urlKeys": [
+        "river-cruise"
+      ]
     },
     {
-      "item": "Skyline Luge (4 Ride Combo, Peak)",
+      "id": "bus-sg-kl",
+      "item": "Bus SIN → KUL (KKKL Express)",
+      "short": "KKKL Bus · Sep 24 · 00:30",
+      "date": "Sep 24 · 00:30 from Bugis MRT Exit D",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Day3, Sep23, 17:00-18:00 (1hr session)"
+      "category": "transport",
+      "urlKeys": [],
+      "passMeta": {
+        "airline": "KKKL EXPRESS · SVIP EXECUTIVE",
+        "originIata": "SIN",
+        "destIata": "KUL",
+        "originName": "Bugis MRT Exit D",
+        "destName": "LaLaport Bukit Bintang",
+        "depTime": "00:30",
+        "arrTime": "06:30",
+        "duration": "6h 00m · Overnight Coach"
+      }
     },
     {
-      "item": "Wings of Time (Standard + Good Old Days Buffet)",
+      "id": "hotel-kul",
+      "item": "Hotel Royal Signature KUL",
+      "short": "Hotel KUL · Sep 25–26",
+      "date": "Sep 25–26 (1N)",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Day3, Sep23, 7:40pm show"
+      "category": "hotels",
+      "urlKeys": [],
+      "passMeta": {
+        "address": "17-21 Jalan Bukit Bintang, 55100 Kuala Lumpur",
+        "checkIn": "Sep 25 (15:00)",
+        "checkOut": "Sep 26 (12:00)",
+        "roomType": "Deluxe King · 1 Night",
+        "lat": 3.1479,
+        "lon": 101.71
+      }
     },
     {
-      "item": "Cable Car SkyPass Premium (SkyOrb + Sentosa Line) + Singapore Sling bundle",
-      "status": "booked",
-      "date": "Day3, Sep23"
-    },
-    {
-      "item": "Water B Light Show Cruise",
-      "status": "walk-up-planned",
-      "date": "Day4 evening, 7:30pm slot — buy in person at Fort Canning kiosk, not prebooked online"
-    },
-    {
-      "item": "ArtScience Museum (Future World or Into the Ocean)",
+      "id": "lalaspeed",
+      "item": "Lalaspeed E Kart Raceway (LaLaport L5)",
+      "short": "Lalaspeed Karting · Sep 25",
+      "date": "Sep 25 · Early Afternoon",
+      "sortDate": "[phone]",
       "status": "not-booked",
-      "date": "Day2, Sep22, 2:00-4:00pm block"
+      "category": "attractions",
+      "urlKeys": [
+        "lalaspeed-karting"
+      ],
+      "notes": "Level 5 LaLaport Bukit Bintang — right next to Hotel Royal Signature"
     },
     {
-      "item": "1-Arden Sky Garden — Sep21 evening slot (6-10pm)",
-      "status": "booked-2-guests",
-      "date": "Day1, Sep21, 18:00-22:00"
-    },
-    {
-      "item": "1-Arden Sky Garden — Sep22 evening slot (6-10pm, backup)",
+      "id": "petronas",
+      "item": "Petronas Skybridge (Sky Xperience)",
+      "short": "Petronas · Sep 25 · 18:30",
+      "date": "Sep 25 · 18:30 entry",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Day2, Sep22, 18:00-22:00"
+      "category": "attractions",
+      "urlKeys": [
+        "petronas-skybridge"
+      ],
+      "notes": "Check-in by 18:15 · Sunset transition slot",
+      "passMeta": {
+        "venue": "Petronas Twin Towers · Concourse Level",
+        "entrySlot": "18:30 Entry (Check-in 18:15) · 2 Adults",
+        "lat": 3.1578,
+        "lon": 101.7123
+      }
     },
     {
-      "item": "1-Arden Sky Garden — Sep22 afternoon (2:30-5:30pm)",
-      "status": "booked-2-guests",
-      "date": "Day2, Sep22, 14:30-17:30",
-      "notes": "Now booked for 2 guests under Prabha's account — supersedes the earlier 1-guest booking made minutes before. CHECK SevenRooms/email for a possible duplicate reservation (1-guest + 2-guest both existing) and cancel the redundant one if so. Still overlaps ArtScience Museum (2-4pm) and Sands/Sampan/Cloud Forest (4-7pm) Musts — both of you would need to skip/shorten those to use this slot"
-    },
-    {
-      "item": "W KL Rooftop Pool day pass",
+      "id": "aras-kl",
+      "item": "ARAS Restaurant, KL Tower",
+      "short": "ARAS Lunch · Sep 26 · 12:00",
+      "date": "Sep 26 · 12:00–14:30",
+      "sortDate": "[phone]",
       "status": "booked",
-      "date": "Sat Sep26, 15:00 slot"
+      "category": "dining",
+      "urlKeys": [
+        "aras-restaurant"
+      ]
     },
     {
-      "item": "ARAS Restaurant (KL Tower) lunch reservation",
-      "status": "not-booked",
-      "date": "Day6, 12:00-14:30 (relaxed, reinstated)"
+      "id": "w-kl-pool",
+      "item": "W KL Rooftop Pool Day Pass",
+      "short": "W KL Pool · Sep 26 · 15:00",
+      "date": "Sep 26 · 15:00 slot",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "attractions",
+      "urlKeys": [
+        "w-kl-pool"
+      ],
+      "passMeta": {
+        "venue": "W Kuala Lumpur WET Deck · Level 12",
+        "entrySlot": "15:00–19:00 · Sunset Chasers (2 Adults)"
+      }
     },
     {
-      "item": "ICICI Sapphiro Priority Pass activation (2 comp intl lounge visits)",
-      "status": "pending-action",
-      "date": "Activate before Sep21"
+      "id": "bus-kl-sg",
+      "item": "Bus KUL → SIN (Cosmic Express)",
+      "short": "Cosmic Bus · Sep 26 · 00:15",
+      "date": "Sep 26 · 00:15 from TBS → Boon Lay",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "transport",
+      "urlKeys": [],
+      "passMeta": {
+        "airline": "COSMIC EXPRESS · DOUBLE DECKER",
+        "originIata": "KUL",
+        "destIata": "SIN",
+        "originName": "TBS Terminal Kuala Lumpur",
+        "destName": "Boon Lay Singapore",
+        "depTime": "00:15",
+        "arrTime": "05:30",
+        "duration": "5h 15m · Overnight Coach"
+      }
+    },
+    {
+      "id": "visa-sin",
+      "item": "Singapore MEV Visa",
+      "short": "SIN Visa · Approved",
+      "date": "Approved",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "admin",
+      "urlKeys": []
+    },
+    {
+      "id": "insurance",
+      "item": "Travel Insurance — ICICI Lombard TripSecure+",
+      "short": "Insurance · Both travellers",
+      "date": "Sep 21–27",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "admin",
+      "urlKeys": []
+    },
+    {
+      "id": "priority-pass",
+      "item": "ICICI Sapphiro Priority Pass",
+      "short": "Priority Pass — activate before Sep 21",
+      "date": "Before Sep 21",
+      "sortDate": "[phone]",
+      "status": "pending",
+      "category": "admin",
+      "notes": "2 complimentary lounge visits each",
+      "urlKeys": [
+        "sats-premier-lounge"
+      ]
+    },
+    {
+      "id": "sg-arrival-card-1",
+      "item": "Singapore Arrival Card (SGAC) — Entry 1",
+      "short": "SGAC · DEL→SIN arrival, filed",
+      "date": "For Sep 21 arrival",
+      "sortDate": "[phone]",
+      "status": "booked",
+      "category": "admin",
+      "notes": "⚠️ Second SGAC still needed for the KUL→SIN return leg (~Sep25) — must be filed separately within 3 days before that arrival, single-entry only.",
+      "urlKeys": []
     }
   ]
 }

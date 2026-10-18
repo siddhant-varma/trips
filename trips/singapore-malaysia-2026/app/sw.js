@@ -1,13 +1,16 @@
 /* ── Service Worker ───────────────────────────────────────────────
    Bump CACHE for each new trip (or each significant update).
    ─────────────────────────────────────────────────────────────── */
-const CACHE = "trip-cache-v14"; // keep in sync with TRIP_CONFIG.swCacheName
+const CACHE = "trip-cache-v15"; // keep in sync with TRIP_CONFIG.swCacheName
 
 const STATIC = [
   "./",
   "./index.html",
   "./manifest.json",
   "./css/style.css",
+  "./fonts/inter-latin.woff2",
+  "./fonts/space-grotesk-latin.woff2",
+  "./fonts/material-symbols-outlined.woff2",
   "./js/trip-config.js",
   "./js/app.js",
   // MapLibre from CDN — <script>/<link> fetch no-cors (opaque), so runtime caching skips them
@@ -20,7 +23,6 @@ const STATIC = [
   "./data/budget.json",
   "./data/clusters.json",
   "./data/bookings.json",
-  "./data/bookings-display.json",
   "./data/urls.json",
   "./data/tips.json",
   "./data/alternates.json",
@@ -57,11 +59,27 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
+  const url = e.request.url;
+
+  // Network-first for live telemetry (Open-Meteo) with cache fallback
+  if (url.includes("api.open-meteo.com")) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy));
+        }
+        return res;
+      }).catch(() => caches.match(e.request) || new Response("{}", { status: 503 }))
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(res => {
-        if (res.ok) {
+        if (res.ok || res.type === "opaque") {
           const copy = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, copy));
         }
