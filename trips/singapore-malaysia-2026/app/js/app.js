@@ -11,10 +11,10 @@
   const DISPLAY_TITLE = CFG.subtitle || (CFG.title ? `${CFG.title}` : "Trip Docket");
   const HOME_SYM = CFG.homeCurrencySymbol || "₹";
   const HOME_CUR = CFG.homeCurrency || "INR";
-  const FX_RATES = CFG.toHomeCurrency || { SGD: 62.5, MYR: 19, USD: 84, INR: 1 };
+  const FX_RATES = CFG.toHomeCurrency || { INR: 1 };
   const FOREIGN_CURS = (CFG.currencies || ["SGD", "MYR", "INR"]).filter(c => c !== HOME_CUR);
   const PRIMARY_FX_CUR = FOREIGN_CURS[0] || "SGD";
-  const PRIMARY_FX_RATE = FX_RATES[PRIMARY_FX_CUR] || 62.5;
+  const PRIMARY_FX_RATE = FX_RATES[PRIMARY_FX_CUR] || 1;
 
   const DATA = {};
   let IS_PUBLIC_STRIPPED = false;
@@ -105,40 +105,27 @@
     return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destQuery || DISPLAY_TITLE)}&travelmode=transit`;
   }
 
+  // Trip day for "now" in the trip's first-city timezone: before trip → first day, after → last day.
+  function todayISO() {
+    const tz = Object.values(CFG.cities || {})[0]?.timezone || "UTC";
+    return new Date().toLocaleDateString("en-CA", { timeZone: tz }); // YYYY-MM-DD
+  }
+  function activeDayId() {
+    const days = DATA.itinerary?.days || [];
+    if (!days.length) return null;
+    const iso = todayISO();
+    const map = CFG.dateToDay || {};
+    if (map[iso]) return map[iso];
+    if (CFG.tripStart && iso < CFG.tripStart) return days[0].day;
+    return days[days.length - 1].day;
+  }
+  function isTripLive() {
+    return !!(CFG.dateToDay || {})[todayISO()];
+  }
+
   /* ── LocalStorage Persistence (Expenses, CSV, Checklist, Notes) ──────── */
   function getDefaultExpenses() {
-    return [
-      {
-        id: "exp-1",
-        date: "Today 13:40",
-        merchant: "Maxwell Food Centre",
-        note: "Tian Tian Chicken Rice",
-        category: "Food",
-        amount: 12.50,
-        currency: "SGD",
-        homeAmount: 781
-      },
-      {
-        id: "exp-2",
-        date: "Nov 14",
-        merchant: "Gardens by the Bay Tickets",
-        note: "Cloud Forest & Supertree",
-        category: "Sights",
-        amount: 56.00,
-        currency: "SGD",
-        homeAmount: 3500
-      },
-      {
-        id: "exp-3",
-        date: "Nov 14",
-        merchant: "Grab Ride (Changi → Hotel)",
-        note: "Raffles Place dropoff",
-        category: "Transit",
-        amount: 24.80,
-        currency: "SGD",
-        homeAmount: 1550
-      }
-    ];
+    return [];
   }
 
   function loadExpenses() {
@@ -146,7 +133,7 @@
       const raw = localStorage.getItem(STORAGE_KEYS.expenses);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch (_) {}
     return getDefaultExpenses();
@@ -301,7 +288,7 @@
       let cur = (idxCur >= 0 && cols[idxCur] ? cols[idxCur].toUpperCase() : PRIMARY_FX_CUR).trim();
       if (!FX_RATES[cur]) cur = PRIMARY_FX_CUR;
       const cat = (idxCat >= 0 && cols[idxCat] ? cols[idxCat] : inferExpenseCategory(merchant));
-      const rate = FX_RATES[cur] || 62.5;
+      const rate = FX_RATES[cur] || 1;
       const homeAmt = Math.round(amt * rate);
       const isDup = existing.some(
         e => e.merchant.toLowerCase() === merchant.toLowerCase() && Math.abs(Number(e.amount) - amt) < 0.01
@@ -338,7 +325,7 @@
       const raw = localStorage.getItem(STORAGE_KEYS.checklist);
       if (raw) return JSON.parse(raw);
     } catch (_) {}
-    return { "0": true, "1": true, "4": true };
+    return {};
   }
 
   function saveChecklist(map) {
@@ -428,9 +415,14 @@
      ═══════════════════════════════════════════════════════════════════════ */
   function renderTodayView() {
     const days = DATA.itinerary?.days || [];
-    const selectedDayObj = STATE.todayDay && STATE.todayDay !== "checklist"
-      ? days.find(d => d.day === STATE.todayDay)
+    const shownDayId = STATE.todayDay || activeDayId();
+    const selectedDayObj = STATE.todayDay !== "checklist"
+      ? days.find(d => d.day === shownDayId) || null
       : null;
+    const expenses = loadExpenses();
+    const spentHome = expenses.reduce((t, x) => t + (Number(x.homeAmount) || 0), 0);
+    const ceiling = Number(CFG.spendingCeiling) || 0;
+    const wx = STATE.liveWeather[Object.keys(CFG.cities || {})[0]];
 
     // Interactive Day / Checklist drawer when user switches days on Today
     let dynamicDaySection = "";
@@ -466,7 +458,7 @@
               <span class="text-[10px] font-label font-bold text-primary uppercase">${esc(selectedDayObj.day)} · ${esc(selectedDayObj.date)} · ${esc(selectedDayObj.city)}</span>
               <h3 class="font-headline text-sm font-bold text-on-surface mt-0.5">${esc(selectedDayObj.title || selectedDayObj.city)}</h3>
             </div>
-            <button data-action="set-today-day" data-day="" class="text-xs font-label text-primary hover:underline">Reset View</button>
+            ${STATE.todayDay ? `<button data-action="set-today-day" data-day="" class="text-xs font-label text-primary hover:underline">${isTripLive() ? "Back to Today" : "Reset View"}</button>` : `<span class="text-[10px] font-label text-on-surface-variant">${isTripLive() ? "TODAY" : (todayISO() < (CFG.tripStart || "") ? "FIRST DAY" : "TRIP ENDED")}</span>`}
           </div>
           <div class="space-y-2">
             ${(selectedDayObj.blocks || []).map(b => `
@@ -496,11 +488,11 @@
               <span class="font-headline text-sm font-bold tracking-tight text-on-surface dark:text-on-surface">${esc(DISPLAY_TITLE)}</span>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <button data-action="cycle-today-day" class="inline-flex items-center px-1.5 py-0.2 text-[10px] font-label font-bold tracking-wider text-primary bg-primary-container/15 rounded cursor-pointer">
-                  ${selectedDayObj ? `${esc(selectedDayObj.day.toUpperCase())} · ${esc(selectedDayObj.city)}` : "DAY 3 · SINGAPORE"}
+                  ${selectedDayObj ? `${esc(selectedDayObj.day.toUpperCase())} · ${esc(selectedDayObj.city)}` : "—"}
                 </button>
                 <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
                 <button data-action="set-today-day" data-day="${STATE.todayDay === "checklist" ? "" : "checklist"}" class="text-[11px] text-on-surface-variant hover:text-primary font-label cursor-pointer">
-                  ${STATE.todayDay === "checklist" ? "CONCIERGE" : "24 OCT"}
+                  ${STATE.todayDay === "checklist" ? "CONCIERGE" : "CHECKLIST"}
                 </button>
               </div>
             </div>
@@ -512,9 +504,9 @@
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
               </span>
-              <span class="text-on-surface text-[11px] font-medium">29°C</span>
-              <span class="text-on-surface-variant text-[11px]">·</span>
-              <span class="text-on-surface-variant text-[11px]">60%</span>
+              <span class="text-on-surface text-[11px] font-medium">${wx ? `${wx.temp}°C` : "—"}</span>
+              ${wx ? `<span class="text-on-surface-variant text-[11px]">·</span>
+              <span class="text-on-surface-variant text-[11px]">${wx.humidity}%</span>` : ""}
             </button>
             <!-- Global Search Action -->
             <button data-nav="#search:csv" aria-label="Search trip" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-150 subtle-border active:scale-95">
@@ -526,207 +518,32 @@
         <!-- MAIN SCROLLABLE CONTENT CANVAS -->
         <main class="flex-1 px-4 pt-3 pb-8 space-y-5">
           ${dynamicDaySection}
-          <!-- SECTION: WEATHER & LIVE ATMOSPHERIC ADVISORY -->
-          <section class="space-y-2.5">
-            <!-- Hourly Micro-Forecast Horizontal Strip -->
-            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-              <div class="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-low text-xs font-label subtle-border">
-                <span class="text-on-surface-variant font-medium">10:00</span>
-                <span class="material-symbols-outlined text-sm text-amber-300" data-icon="wb_sunny">wb_sunny</span>
-                <span class="font-semibold text-on-surface">28°C</span>
-              </div>
-              <div class="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-low text-xs font-label subtle-border">
-                <span class="text-on-surface-variant font-medium">13:00</span>
-                <span class="material-symbols-outlined text-sm text-slate-300" data-icon="partly_cloudy_day">partly_cloudy_day</span>
-                <span class="font-semibold text-on-surface">31°C</span>
-              </div>
-              <div class="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-high text-xs font-label subtle-border">
-                <span class="text-primary font-medium">16:00</span>
-                <span class="material-symbols-outlined text-sm text-primary" data-icon="thunderstorm">thunderstorm</span>
-                <span class="font-semibold text-primary">27°C <span class="text-[10px] text-primary/80">70%</span></span>
-              </div>
-              <div class="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-container-low text-xs font-label subtle-border">
-                <span class="text-on-surface-variant font-medium">19:00</span>
-                <span class="material-symbols-outlined text-sm text-slate-300" data-icon="rainy_light">rainy_light</span>
-                <span class="font-semibold text-on-surface">28°C</span>
-              </div>
-            </div>
-            <!-- Amber Advisory Banner -->
-            <div class="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25">
-              <span class="material-symbols-outlined text-amber-400 text-lg flex-shrink-0 mt-0.5" data-icon="bolt">bolt</span>
-              <div class="text-xs leading-relaxed">
-                <span class="font-semibold text-amber-300">Weather Alert:</span>
-                <span class="text-amber-100/90 ml-1">Thunderstorms predicted around 15:30. Indoor Gardens by the Bay Conservatory scheduled.</span>
-              </div>
-            </div>
-          </section>
-
-          <!-- SECTION: "NEXT UP" HERO CONCIERGE CARD -->
-          <section class="space-y-2">
-            <div class="flex items-center justify-between px-1">
-              <div class="flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                <span class="font-label text-xs font-bold tracking-wider uppercase text-primary">Next Up</span>
-              </div>
-              <span class="font-label text-xs text-on-surface-variant font-medium">Est. Duration 2h 30m</span>
-            </div>
-            <div class="relative overflow-hidden rounded-2xl bg-surface-container-low p-4 hero-glow transition-all duration-200">
-              <!-- Top Row Status Badges -->
-              <div class="flex items-center justify-between pb-3 border-b border-outline-variant/30">
-                <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded bg-surface-container-high text-primary font-label text-xs font-bold tracking-tight">10:30 AM</span>
-                  <span class="text-xs text-primary/90 font-label font-medium">· IN 25 MINS</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary/15 text-tertiary text-[11px] font-label font-bold">
-                    <span class="w-1 h-1 rounded-full bg-tertiary"></span>
-                    BOOKED
-                  </span>
-                  ${!IS_PUBLIC_STRIPPED ? `<span class="text-[11px] font-label text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">PNR: GBB-8842</span>` : ""}
-                </div>
-              </div>
-              <!-- Activity Header & Context -->
-              <div class="pt-3.5 pb-2">
-                <h2 class="font-headline text-lg font-bold text-on-surface tracking-tight leading-snug">
-                  Cloud Forest &amp; Flower Dome
-                </h2>
-                <p class="text-xs text-on-surface-variant mt-0.5 flex items-center gap-1">
-                  <span class="material-symbols-outlined text-xs text-primary" data-icon="location_on">location_on</span>
-                  Gardens by the Bay · Marina Bay Waterfront
-                </p>
-              </div>
-              <!-- Embedded Transit Micro-Card -->
-              <div class="mt-3 p-3 rounded-xl bg-surface-container-lowest/70 subtle-border space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-md bg-secondary-container flex items-center justify-center text-on-secondary-container">
-                      <span class="material-symbols-outlined text-sm" data-icon="subway">subway</span>
-                    </span>
-                    <span class="text-xs font-label font-bold text-on-surface">12 MIN VIA MRT</span>
-                  </div>
-                  <span class="text-[11px] font-label text-primary font-medium">Direct Route</span>
-                </div>
-                <div class="flex items-center gap-2 text-xs text-on-surface-variant font-label">
-                  <span class="text-on-surface font-medium truncate max-w-[120px]">Raffles Place</span>
-                  <span class="material-symbols-outlined text-xs text-outline" data-icon="arrow_forward">arrow_forward</span>
-                  <span class="text-on-surface font-medium truncate max-w-[120px]">Bayfront (DT16/CE1)</span>
-                  <span class="text-outline-variant">·</span>
-                  <span class="text-[11px] text-on-surface-variant">Exit B (450m walk)</span>
-                </div>
-              </div>
-              <!-- Action CTA -->
-              <div class="mt-4 pt-1 flex items-center gap-2">
-                <a href="${googleMapsDirUrl("Gardens by the Bay Singapore", 1.2816, 103.8636)}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-primary-container text-on-primary-container font-headline font-semibold text-xs tracking-tight shadow-md hover:brightness-110 active:scale-95 transition-all">
-                  <span class="material-symbols-outlined text-base" data-icon="directions">directions</span>
-                  Navigate in Google Maps
-                </a>
-                <button data-action="open-qr-modal" data-title="Cloud Forest & Flower Dome" data-ref="GBB-8842" aria-label="View QR voucher" class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-on-surface subtle-border active:scale-90 transition-transform">
-                  <span class="material-symbols-outlined text-lg" data-icon="qr_code_2">qr_code_2</span>
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <!-- SECTION: UPCOMING TODAY (VERTICAL TIMELINE SPINE) -->
-          <section class="space-y-3 pt-1">
-            <div class="flex items-center justify-between px-1">
-              <h3 class="font-headline text-sm font-bold tracking-tight text-on-surface">Upcoming Today</h3>
-              <button data-nav="#plan" class="font-label text-xs text-on-surface-variant hover:text-primary">3 events pending</button>
-            </div>
-            <div class="relative timeline-spine pl-9 space-y-4">
-              <!-- EVENT 1: Lau Pa Sat -->
-              <div class="relative group cursor-pointer" data-nav="#plan">
-                <div class="absolute -left-[27px] top-1.5 w-4 h-4 rounded-full bg-surface-container-high border-2 border-primary flex items-center justify-center">
-                  <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                </div>
-                <div class="p-3.5 rounded-xl bg-surface-container-low subtle-border group-hover:bg-surface-container transition-colors">
-                  <div class="flex items-center justify-between">
-                    <span class="font-label text-xs font-bold text-primary">13:15</span>
-                    <span class="font-label text-[11px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded">MUST DO</span>
-                  </div>
-                  <h4 class="font-headline text-sm font-semibold text-on-surface mt-1">Lau Pa Sat Satay Street</h4>
-                  <p class="text-xs text-on-surface-variant mt-0.5">Boon Tat St hawker stalls 7 &amp; 8 · Outdoor dining</p>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Food &amp; Dining</span>
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Est. S$18.00</span>
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Cash / PayNow</span>
-                  </div>
-                </div>
-              </div>
-              <!-- EVENT 2: ArtScience Museum -->
-              <div class="relative group cursor-pointer" data-nav="#plan">
-                <div class="absolute -left-[27px] top-1.5 w-4 h-4 rounded-full bg-surface-container-high border-2 border-secondary flex items-center justify-center">
-                  <div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
-                </div>
-                <div class="p-3.5 rounded-xl bg-surface-container-low subtle-border group-hover:bg-surface-container transition-colors">
-                  <div class="flex items-center justify-between">
-                    <span class="font-label text-xs font-bold text-secondary">16:30</span>
-                    <span class="font-label text-[11px] text-tertiary bg-tertiary/10 px-2 py-0.5 rounded font-medium">BOOKED</span>
-                  </div>
-                  <h4 class="font-headline text-sm font-semibold text-on-surface mt-1">ArtScience Museum: Future World</h4>
-                  <p class="text-xs text-on-surface-variant mt-0.5">Marina Bay Sands · Indoor Interactive Art</p>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-primary">Indoor Weather Backup</span>
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Voucher in Wallet</span>
-                  </div>
-                </div>
-              </div>
-              <!-- EVENT 3: Spectra Light & Water Show -->
-              <div class="relative group cursor-pointer" data-nav="#plan">
-                <div class="absolute -left-[27px] top-1.5 w-4 h-4 rounded-full bg-surface-container-high border-2 border-outline flex items-center justify-center">
-                  <div class="w-1.5 h-1.5 rounded-full bg-outline"></div>
-                </div>
-                <div class="p-3.5 rounded-xl bg-surface-container-low subtle-border group-hover:bg-surface-container transition-colors">
-                  <div class="flex items-center justify-between">
-                    <span class="font-label text-xs font-bold text-on-surface-variant">20:00</span>
-                    <span class="font-label text-[11px] text-primary bg-primary/10 px-2 py-0.5 rounded font-medium">FREE SHOW</span>
-                  </div>
-                  <h4 class="font-headline text-sm font-semibold text-on-surface mt-1">Spectra Light &amp; Water Show</h4>
-                  <p class="text-xs text-on-surface-variant mt-0.5">Marina Bay Event Promenade · Optimal spot: Event Plaza</p>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-2.5">
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">15 min duration</span>
-                    <span class="text-[10px] font-label font-medium px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Arrive 15m early</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
           <!-- SECTION: QUICK FINANCE BENTO ROW -->
           <section class="grid grid-cols-2 gap-3 pt-1">
             <!-- Bento 1: Daily Spend -->
             <div class="p-3.5 rounded-xl bg-surface-container-low subtle-border flex flex-col justify-between space-y-2">
               <div class="flex items-center justify-between text-on-surface-variant">
-                <span class="text-[11px] font-label uppercase tracking-wider font-semibold">Today's Spend</span>
+                <span class="text-[11px] font-label uppercase tracking-wider font-semibold">Trip Spend</span>
                 <span class="material-symbols-outlined text-sm text-primary" data-icon="payments">payments</span>
               </div>
               <div>
-                <div class="font-label text-lg font-bold text-on-surface tracking-tight">S$64.50</div>
-                <div class="text-[10px] font-label text-on-surface-variant mt-0.5">≈ ₹4,030 INR</div>
+                <div class="font-label text-lg font-bold text-on-surface tracking-tight">${formatHome(spentHome)}</div>
+                <div class="text-[10px] font-label text-on-surface-variant mt-0.5">${ceiling ? `of ${formatHome(ceiling)} cap · ` : ""}${expenses.length} logged</div>
               </div>
               <button data-action="open-add-expense" class="w-full mt-1 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-[11px] font-headline font-semibold text-primary transition-colors flex items-center justify-center gap-1 active:scale-95">
                 <span class="material-symbols-outlined text-xs" data-icon="add">add</span>
                 Log Expense
               </button>
             </div>
-            <!-- Bento 2: Transit Pass Status -->
-            <div class="p-3.5 rounded-xl bg-surface-container-low subtle-border flex flex-col justify-between space-y-2 cursor-pointer" data-nav="#toolkit">
-              <div class="flex items-center justify-between text-on-surface-variant">
-                <span class="text-[11px] font-label uppercase tracking-wider font-semibold">Transit Pass</span>
-                <span class="material-symbols-outlined text-sm text-tertiary" data-icon="contactless">contactless</span>
+            <!-- Bento 2: Pre-trip checklist -->
+            <button data-action="set-today-day" data-day="checklist" class="p-3.5 rounded-xl bg-surface-container-low subtle-border flex flex-col justify-between space-y-2 text-left">
+              <div class="flex items-center justify-between text-on-surface-variant w-full">
+                <span class="text-[11px] font-label uppercase tracking-wider font-semibold">Checklist</span>
+                <span class="material-symbols-outlined text-sm text-tertiary">checklist</span>
               </div>
-              <div>
-                <div class="font-label text-xs font-semibold text-tertiary flex items-center gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
-                  SimplyGo Active
-                </div>
-                <div class="text-[10px] font-label text-on-surface-variant mt-1">Visa Contactless •• 4912</div>
-              </div>
-              <div class="w-full mt-1 py-1.5 px-2 rounded-lg bg-surface-container-lowest text-[11px] font-label text-on-surface-variant flex items-center justify-between">
-                <span>Balance:</span>
-                <span class="text-on-surface font-semibold">S$35.50</span>
-              </div>
-            </div>
+              <div class="font-label text-lg font-bold text-on-surface tracking-tight">${(CFG.preTripChecklist || []).filter((_, i) => loadChecklist()[i]).length}/${(CFG.preTripChecklist || []).length}</div>
+              <div class="text-[10px] font-label text-on-surface-variant">items done</div>
+            </button>
           </section>
         </main>
         ${renderBottomNav("today")}
@@ -739,7 +556,8 @@
      ═══════════════════════════════════════════════════════════════════════ */
   function renderPlanTimelineView() {
     const days = DATA.itinerary?.days || [];
-    const activeDayObj = STATE.planDay ? days.find(d => d.day === STATE.planDay) : null;
+    const shownPlanDay = STATE.planDay || activeDayId();
+    const activeDayObj = days.find(d => d.day === shownPlanDay) || null;
 
     let dynamicDayBlocks = "";
     if (activeDayObj) {
@@ -750,7 +568,7 @@
               <span class="text-[10px] font-label font-bold text-primary uppercase">${esc(activeDayObj.day)} · ${esc(activeDayObj.date)} · ${esc(activeDayObj.city)}</span>
               <h3 class="font-headline text-base font-bold text-on-surface mt-0.5">${esc(activeDayObj.title || activeDayObj.city)}</h3>
             </div>
-            <button data-action="set-plan-day" data-day="" class="text-xs font-label text-primary hover:underline">Default View</button>
+            
           </div>
           <div class="space-y-3">
             ${(activeDayObj.blocks || []).map(b => {
@@ -811,241 +629,21 @@
             </button>
           </div>
 
-          <!-- Horizontal Day Scrubber Strip -->
+          <!-- Horizontal Day Scrubber Strip (from itinerary.json) -->
           <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 text-xs">
-            <button data-action="set-plan-day" data-day="Day1" class="shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col items-center min-w-[70px] text-left active:scale-95">
-              <span class="font-label font-semibold text-on-surface">D1 · Nov 14</span>
-              <span class="text-[10px] text-on-surface-variant font-label tracking-wider mt-0.5">SIN</span>
-            </button>
-            <button data-action="set-plan-day" data-day="Day2" class="shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col items-center min-w-[70px] text-left active:scale-95">
-              <span class="font-label font-semibold text-on-surface">D2 · Nov 15</span>
-              <span class="text-[10px] text-on-surface-variant font-label tracking-wider mt-0.5">SIN</span>
-            </button>
-            <button data-action="set-plan-day" data-day="" class="shrink-0 px-3.5 py-2 rounded-xl bg-surface-container-high ring-1 ring-primary-container flex flex-col items-start min-w-[124px] shadow-sm relative overflow-hidden active:scale-95 transition-transform">
-              <div class="absolute top-0 right-0 w-8 h-8 bg-primary/10 rounded-full blur-md pointer-events-none"></div>
-              <div class="flex items-center gap-1.5 w-full">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
-                <span class="font-label font-bold text-primary text-xs">D3 · Nov 16</span>
-              </div>
-              <span class="text-[10px] text-primary-fixed-dim font-medium tracking-tight truncate max-w-[110px] mt-0.5">Marina Bay &amp; Gardens</span>
-            </button>
-            <button data-action="set-plan-day" data-day="Day3" class="shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col items-center min-w-[76px] text-left active:scale-95">
-              <span class="font-label font-semibold text-on-surface">D4 · Nov 17</span>
-              <span class="text-[10px] text-on-surface-variant font-label tracking-wider mt-0.5">Sentosa</span>
-            </button>
-            <button data-action="set-plan-day" data-day="Day5" class="shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col items-center min-w-[70px] text-left active:scale-95">
-              <span class="font-label font-semibold text-on-surface">D5 · Nov 18</span>
-              <span class="text-[10px] text-on-surface-variant font-label tracking-wider mt-0.5">KUL</span>
-            </button>
-            <button data-action="set-plan-day" data-day="Day6" class="shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col items-center min-w-[70px] text-left active:scale-95">
-              <span class="font-label font-semibold text-on-surface">D6 · KUL</span>
-              <span class="text-[10px] text-on-surface-variant font-label tracking-wider mt-0.5">Batu</span>
-            </button>
-            <button data-action="set-plan-day" data-day="Day7" class="shrink-0 px-3 py-2 rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col items-center min-w-[70px] text-left active:scale-95">
-              <span class="font-label font-semibold text-on-surface">D7 · SIN</span>
-              <span class="text-[10px] text-on-surface-variant font-label tracking-wider mt-0.5">Jewel</span>
-            </button>
+            ${days.map((d, i) => {
+              const on = d.day === shownPlanDay;
+              return `<button data-action="set-plan-day" data-day="${esc(d.day)}" class="shrink-0 px-3 py-2 rounded-xl ${on ? "bg-surface-container-high ring-1 ring-primary-container" : "bg-surface-container hover:bg-surface-container-high"} flex flex-col items-start min-w-[76px] max-w-[130px] active:scale-95">
+                <span class="font-label font-semibold ${on ? "text-primary" : "text-on-surface"}">D${i + 1} · ${esc(String(d.date || "").replace(/^\w+\s+/, ""))}</span>
+                <span class="text-[10px] text-on-surface-variant font-label tracking-tight mt-0.5 truncate w-full">${esc(d.title || d.city)}</span>
+              </button>`;
+            }).join("")}
           </div>
         </section>
 
         <!-- Main Content Canvas -->
         <main class="flex-1 px-4 pt-3 pb-24 space-y-4">
           ${dynamicDayBlocks}
-          <!-- 2. Day Summary & Live Weather Header Card -->
-          <section class="p-4 rounded-2xl bg-surface-container-low/90 backdrop-blur-xl border border-outline-variant/40 shadow-lg relative overflow-hidden">
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <div>
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-[10px] font-label font-semibold tracking-wider text-primary px-2 py-0.5 rounded-full bg-primary/10">ITINERARY ACTIVE</span>
-                  <span class="text-[10px] font-label text-on-surface-variant">SINGAPORE</span>
-                </div>
-                <h2 class="font-headline text-lg font-bold text-on-surface tracking-tight">Day 3: Marina Bay Architectural Loop</h2>
-              </div>
-              <div class="p-2 rounded-xl bg-surface-container-high text-primary-container shrink-0">
-                <span class="material-symbols-outlined text-2xl">wb_sunny</span>
-              </div>
-            </div>
-            <!-- Weather pill -->
-            <div class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-surface-container-highest/60 text-xs font-label text-on-surface mb-3">
-              <span class="material-symbols-outlined text-sm text-tertiary">thunderstorm</span>
-              <span class="font-medium">28°–31°C · 60% afternoon rain · UV 9</span>
-            </div>
-            <!-- Metric / Pacing Chips -->
-            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-outline-variant/30 text-center">
-              <div class="px-2 py-1.5 rounded-lg bg-surface-container/60">
-                <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-label">Pacing</p>
-                <p class="text-xs font-semibold text-on-surface mt-0.5">Moderate Pace</p>
-              </div>
-              <div class="px-2 py-1.5 rounded-lg bg-surface-container/60">
-                <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-label">Confirmed</p>
-                <p class="text-xs font-semibold text-tertiary mt-0.5">4 Booked</p>
-              </div>
-              <div class="px-2 py-1.5 rounded-lg bg-surface-container/60">
-                <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-label">Est. Budget</p>
-                <p class="text-xs font-semibold font-label text-primary-fixed-dim mt-0.5">S$115</p>
-              </div>
-            </div>
-            <!-- Quick Action CTA -->
-            <button data-nav="#map" class="mt-3 w-full py-2 px-3 rounded-xl bg-surface-container-high hover:bg-surface-bright text-xs font-medium text-primary flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
-              <span class="material-symbols-outlined text-sm">explore</span>
-              <span>Open Day Route in Google Maps</span>
-              <span class="material-symbols-outlined text-xs">arrow_forward</span>
-            </button>
-          </section>
-
-          <!-- 3. Vertical Timeline Spine -->
-          <section class="relative pt-2">
-            <div class="absolute left-[38px] top-6 bottom-8 w-[2px] bg-gradient-to-b from-primary via-outline-variant to-outline-variant/30 pointer-events-none"></div>
-
-            <!-- Time Node 1: 09:00 -->
-            <div class="relative flex items-start gap-3.5 mb-4 group">
-              <div class="shrink-0 w-16 flex flex-col items-center pt-1 z-10">
-                <span class="font-label font-bold text-xs text-on-surface-variant group-hover:text-primary transition-colors">09:00</span>
-                <div class="w-3.5 h-3.5 rounded-full bg-surface-container border-2 border-primary mt-1.5 shadow-sm group-hover:scale-110 transition-transform"></div>
-              </div>
-              <div class="flex-1 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 hover:border-outline-variant transition-all shadow-sm">
-                <div class="flex items-start justify-between gap-2">
-                  <div>
-                    <span class="inline-block px-1.5 py-0.5 rounded bg-surface-container-highest text-[10px] font-label font-medium text-on-surface-variant tracking-wider">BREAKFAST</span>
-                    <h3 class="font-headline text-sm font-semibold text-on-surface mt-1">Tiong Bahru Bakery</h3>
-                  </div>
-                  <span class="font-label text-xs font-semibold text-primary-fixed-dim">S$22</span>
-                </div>
-                <p class="text-xs text-on-surface-variant mt-1.5 leading-relaxed">Try the Kouign Amann &amp; iced flat white</p>
-                <div class="mt-2.5 pt-2 border-t border-outline-variant/20 flex items-center justify-between text-[11px] text-on-surface-variant">
-                  <span class="inline-flex items-center gap-1 font-label">
-                    <span class="material-symbols-outlined text-xs text-tertiary">check_circle</span> 45 min dwell
-                  </span>
-                  <a href="${googleMapsUrl("Tiong Bahru Bakery Singapore")}" target="_blank" rel="noopener" class="inline-flex items-center gap-0.5 text-primary hover:underline cursor-pointer">
-                    <span>View menu</span>
-                    <span class="material-symbols-outlined text-xs">chevron_right</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <!-- Transit Connector: 18 min MRT -->
-            <div class="relative flex items-center gap-3.5 mb-4 pl-[31px]">
-              <div class="z-10 bg-surface-container-high text-primary p-1 rounded-full ring-2 ring-surface">
-                <span class="material-symbols-outlined text-xs block">subway</span>
-              </div>
-              <div class="flex-1 inline-flex items-center justify-between py-1.5 px-3 rounded-lg bg-surface-container/70 border border-outline-variant/20 text-xs font-label text-on-surface-variant">
-                <span class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-[#0057b7]"></span>
-                  <span>18 min via Downtown Line (DT17)</span>
-                </span>
-                <span class="font-medium text-on-surface">S$1.90</span>
-              </div>
-            </div>
-
-            <!-- Time Node 2: 10:30 (Hero Item) -->
-            <div class="relative flex items-start gap-3.5 mb-5 group">
-              <div class="shrink-0 w-16 flex flex-col items-center pt-1 z-10">
-                <span class="font-label font-bold text-xs text-primary group-hover:text-primary-fixed transition-colors">10:30</span>
-                <div class="w-4 h-4 rounded-full bg-primary-container border-2 border-surface flex items-center justify-center mt-1.5 shadow-md shadow-primary/20">
-                  <span class="w-1.5 h-1.5 rounded-full bg-surface-dim"></span>
-                </div>
-              </div>
-              <div class="flex-1 p-4 rounded-xl bg-surface-container-low border border-primary/30 relative overflow-hidden shadow-md">
-                <div class="absolute -right-10 -bottom-10 w-28 h-28 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
-                <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-tertiary-container/20 text-tertiary text-[10px] font-label font-bold tracking-wide">
-                    <span class="material-symbols-outlined text-xs material-symbols-fill">verified</span>
-                    ${IS_PUBLIC_STRIPPED ? "BOOKED" : "BOOKED · #GBB884"}
-                  </span>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 text-[10px] font-label font-bold tracking-wide">
-                    <span class="material-symbols-outlined text-xs">local_fire_department</span>
-                    MUST DO
-                  </span>
-                </div>
-                <h3 class="font-headline text-base font-bold text-on-surface tracking-tight">Cloud Forest &amp; Avatar Experience</h3>
-                <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">Indoor mist conservatory &amp; high waterfall. Temperature controlled at 23°C.</p>
-                <div class="flex items-center gap-2 mt-3.5 pt-3 border-t border-outline-variant/30">
-                  <button data-nav="#wallet" class="flex-1 py-1.5 px-2.5 rounded-lg bg-primary-container text-on-primary-fixed font-headline text-xs font-semibold flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition-all">
-                    <span class="material-symbols-outlined text-sm">confirmation_number</span>
-                    <span>View Pass</span>
-                  </button>
-                  <a href="${googleMapsUrl("Cloud Forest Gardens by the Bay", 1.2816, 103.8636)}" target="_blank" rel="noopener" class="py-1.5 px-3 rounded-lg bg-surface-container-high hover:bg-surface-bright text-xs font-headline font-medium text-on-surface flex items-center justify-center gap-1 transition-colors active:scale-95">
-                    <span class="material-symbols-outlined text-sm text-primary">navigation</span>
-                    <span>Google Maps</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <!-- Transit Connector: Walk 8 min -->
-            <div class="relative flex items-center gap-3.5 mb-4 pl-[31px]">
-              <div class="z-10 bg-surface-container-high text-on-surface-variant p-1 rounded-full ring-2 ring-surface">
-                <span class="material-symbols-outlined text-xs block">directions_walk</span>
-              </div>
-              <div class="flex-1 inline-flex items-center justify-between py-1 px-3 rounded-lg bg-surface-container/40 text-[11px] font-label text-on-surface-variant">
-                <span>8 min walk across Marina Bay Link Mall (Air-conditioned passage)</span>
-                <span class="font-medium">Free</span>
-              </div>
-            </div>
-
-            <!-- Time Node 3: 13:30 -->
-            <div class="relative flex items-start gap-3.5 mb-5 group">
-              <div class="shrink-0 w-16 flex flex-col items-center pt-1 z-10">
-                <span class="font-label font-bold text-xs text-on-surface-variant group-hover:text-primary transition-colors">13:30</span>
-                <div class="w-3.5 h-3.5 rounded-full bg-surface-container border-2 border-outline mt-1.5 group-hover:border-primary transition-colors"></div>
-              </div>
-              <div class="flex-1 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 hover:border-outline-variant transition-all shadow-sm">
-                <div class="flex items-start justify-between gap-2">
-                  <div class="space-y-1">
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-label font-bold">
-                      MUST DO
-                    </span>
-                    <h3 class="font-headline text-sm font-semibold text-on-surface">Maxwell Food Centre</h3>
-                    <p class="text-xs text-primary-fixed-dim font-medium">Tian Tian Hainanese Chicken Rice</p>
-                  </div>
-                  <span class="font-label text-xs font-semibold text-on-surface">S$12</span>
-                </div>
-                <div class="mt-2.5 p-2 rounded-lg bg-surface-container-highest/40 flex items-center gap-2 text-xs text-on-surface-variant">
-                  <span class="material-symbols-outlined text-sm text-tertiary shrink-0">umbrella</span>
-                  <span class="text-[11px]">Covered hawker centre — ideal during 2pm rain forecast</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 4. Collapsible Evening Block Accordion Bar -->
-            <div class="pt-2">
-              <div data-action="toggle-all-blocks" class="flex items-center justify-between p-3 rounded-xl bg-surface-container border border-outline-variant/40 hover:bg-surface-container-high transition-colors cursor-pointer">
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-secondary text-base">bedtime</span>
-                  <span class="font-label text-xs font-bold tracking-wider text-on-surface">EVENING · 3 ITEMS</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="font-label text-xs font-medium text-primary">S$65</span>
-                  <span class="material-symbols-outlined text-on-surface-variant text-sm">expand_less</span>
-                </div>
-              </div>
-              <!-- Evening Item: Time Node 19:45 -->
-              <div class="relative flex items-start gap-3.5 mt-4 group">
-                <div class="shrink-0 w-16 flex flex-col items-center pt-1 z-10">
-                  <span class="font-label font-bold text-xs text-on-surface-variant group-hover:text-primary transition-colors">19:45</span>
-                  <div class="w-3.5 h-3.5 rounded-full bg-surface-container border-2 border-tertiary mt-1.5"></div>
-                </div>
-                <div class="flex-1 p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/30 hover:border-outline-variant transition-all shadow-sm">
-                  <div class="flex items-start justify-between gap-2">
-                    <div>
-                      <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-tertiary-container/20 text-tertiary text-[10px] font-label font-bold">
-                        BOOKED
-                      </span>
-                      <h3 class="font-headline text-sm font-semibold text-on-surface mt-1">Supertree Grove OCBC Skyway</h3>
-                    </div>
-                    <span class="font-label text-xs font-semibold text-on-surface">S$14</span>
-                  </div>
-                  <p class="text-xs text-on-surface-variant mt-1.5">Garden Rhapsody Light &amp; Sound show starts at 19:45 sharp.</p>
-                  <div class="mt-2.5 flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1 text-[11px] font-label text-on-surface-variant">
-                      <span class="material-symbols-outlined text-xs">timer</span> 40m before lights out
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
         </main>
         ${renderBottomNav("plan")}
       </div>
@@ -1711,34 +1309,74 @@
   /* ═══════════════════════════════════════════════════════════════════════
      SCREEN 5: WALLET — PASSES & BOOKINGS (stitch_05_wallet_passes_bookings)
      ═══════════════════════════════════════════════════════════════════════ */
+  // One pass card per booking, from bookings.json (+ optional passMeta).
+  function renderPassCard(b) {
+    const m = b.passMeta || {};
+    const ref = b.ref || b.reference || "";
+    const showRef = !IS_PUBLIC_STRIPPED && ref;
+    const voucher = (b.vouchers || [])[0];
+    const ok = b.status === "booked";
+    const route = m.originIata ? `
+      <div class="flex items-center justify-between py-2">
+        <div>
+          <div class="font-label text-2xl font-bold tracking-tight text-on-surface">${esc(m.originIata)}</div>
+          <div class="font-label text-xs font-semibold text-primary">${esc(m.depTime)}</div>
+          <div class="text-[11px] text-on-surface-variant">${esc(m.originName)}</div>
+        </div>
+        <div class="flex-1 px-3 text-center text-[10px] font-label text-on-surface-variant">${esc(m.duration)}</div>
+        <div class="text-right">
+          <div class="font-label text-2xl font-bold tracking-tight text-on-surface">${esc(m.destIata)}</div>
+          <div class="font-label text-xs font-semibold text-primary">${esc(m.arrTime)}</div>
+          <div class="text-[11px] text-on-surface-variant">${esc(m.destName)}</div>
+        </div>
+      </div>` : "";
+    const facts = [
+      m.airline, m.terminal, m.seat, m.venue, m.entrySlot, m.address, m.roomType,
+      m.checkIn && `Check-in ${m.checkIn}`, m.checkOut && `Check-out ${m.checkOut}`
+    ].filter(Boolean);
+    return `
+      <article class="relative overflow-hidden rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-lg">
+        <div class="p-4 pb-3 space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] font-label font-bold uppercase text-primary truncate">${esc(b.category || "booking")} · ${esc(b.date || "")}</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-label ${ok ? "bg-tertiary/15 text-tertiary border border-tertiary/25" : "bg-amber-500/15 text-amber-300"}">${esc((b.status || "").toUpperCase())}</span>
+          </div>
+          <h4 class="font-headline text-sm font-bold text-on-surface">${esc(b.item)}</h4>
+          ${route}
+          ${facts.map(f => `<p class="text-[11px] font-label text-on-surface-variant">${esc(f)}</p>`).join("")}
+          ${b.notes ? `<p class="text-xs text-on-surface-variant">${esc(b.notes)}</p>` : ""}
+        </div>
+        <div class="relative flex items-center my-0.5">
+          <div class="ticket-notch-left"></div>
+          <div class="w-full border-t border-dashed border-outline-variant/60 mx-4"></div>
+          <div class="ticket-notch-right"></div>
+        </div>
+        <div class="p-4 pt-3 bg-surface-container/40 flex items-center justify-between gap-2">
+          ${showRef ? `
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-high border border-outline-variant/30 min-w-0">
+              <span class="text-[10px] font-label text-outline">REF</span>
+              <span class="font-label text-xs font-bold text-on-surface truncate">${esc(ref)}</span>
+              <button data-copy="${esc(ref)}" aria-label="Copy reference" class="ml-1 text-on-surface-variant hover:text-primary">
+                <span class="material-symbols-outlined text-xs">content_copy</span>
+              </button>
+            </div>` : `<span class="text-[11px] font-label text-on-surface-variant">${esc(b.cost || "")}</span>`}
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${showRef ? `<button data-action="open-qr-modal" data-title="${esc(b.item)}" data-ref="${esc(ref)}" aria-label="Show QR" class="px-2.5 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant/40 text-on-surface"><span class="material-symbols-outlined text-sm">qr_code_2</span></button>` : ""}
+            ${voucher ? `<a href="./vouchers/${encodeURIComponent(voucher)}" target="_blank" rel="noopener" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-on-primary font-semibold text-xs">Voucher<span class="material-symbols-outlined text-xs">north_east</span></a>` : ""}
+          </div>
+        </div>
+      </article>`;
+  }
+
   function renderWalletPassesView() {
     const allBookings = DATA.bookings?.bookings || [];
-    let extraBookingsList = "";
-    if (STATE.walletCat !== "all" || STATE.walletShowAll) {
-      const filtered = STATE.walletCat === "all"
-        ? allBookings
-        : allBookings.filter(b => b.category === STATE.walletCat);
-      extraBookingsList = `
-        <section class="space-y-2.5 pb-2">
-          <div class="flex items-center justify-between px-1">
-            <h3 class="font-label text-[11px] font-bold uppercase tracking-wider text-primary">Full Bookings Docket (${filtered.length})</h3>
-            <button data-action="set-wallet-cat" data-cat="all" class="text-xs font-label text-outline hover:text-on-surface">Collapse</button>
-          </div>
-          ${filtered.map(b => `
-            <article class="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/20 space-y-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-[10px] font-label font-bold uppercase text-primary">${esc(b.category || "booking")} · ${esc(b.date || "")}</span>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-label font-bold ${b.status === "booked" ? "bg-tertiary-container/20 text-tertiary" : "bg-amber-500/15 text-amber-300"}">${esc((b.status || "").toUpperCase())}</span>
-              </div>
-              <h4 class="font-headline text-sm font-bold text-on-surface">${esc(b.item)}</h4>
-              ${!IS_PUBLIC_STRIPPED && (b.ref || b.reference) ? `<p class="text-[11px] font-label text-on-surface-variant">Ref: <strong class="text-on-surface">${esc(b.ref || b.reference)}</strong> ${b.cost ? `· ${esc(b.cost)}` : ""}</p>` : ""}
-              ${b.notes ? `<p class="text-xs text-on-surface-variant">${esc(b.notes)}</p>` : ""}
-            </article>
-          `).join("")}
-        </section>
-      `;
-    }
-
+    const filtered = STATE.walletCat === "all"
+      ? allBookings
+      : allBookings.filter(b => b.category === STATE.walletCat);
+    const bookedCount = allBookings.filter(b => b.status === "booked").length;
+    const openCount = allBookings.length - bookedCount;
+    const feed = filtered.length ? filtered.map(renderPassCard).join("") :
+      `<p class="text-xs text-on-surface-variant text-center py-6">No bookings in this category.</p>`;
     return `
       <div class="relative w-full max-w-md mx-auto min-h-screen bg-surface-container-lowest pb-28 shadow-2xl">
         <!-- TopAppBar (Anchored Shared Component) -->
@@ -1751,7 +1389,7 @@
             <!-- Live Currency Indicator -->
             <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-surface-container-high/80 border border-outline-variant/30 text-xs font-label">
               <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-              <span class="text-on-surface-variant text-[11px] font-medium tracking-tight">1 ${PRIMARY_FX_CUR} ≈ ₹62.50</span>
+              <span class="text-on-surface-variant text-[11px] font-medium tracking-tight">1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}</span>
             </div>
             <!-- Trailing Search Button -->
             <button data-nav="#search:csv" aria-label="Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary active:scale-95 transition-all">
@@ -1764,7 +1402,7 @@
         <div class="px-4 pt-2 pb-1">
           <div class="flex items-center p-1 rounded-xl bg-surface-container-low border border-outline-variant/30">
             <button data-nav="#wallet" class="flex-1 py-1.5 px-2 text-center text-xs font-semibold rounded-lg bg-surface-container text-primary-container border border-primary-container/30 shadow-sm transition-all duration-150">
-              Passes &amp; Bookings (8)
+              Passes &amp; Bookings (${allBookings.length})
             </button>
             <button data-nav="#wallet:spend" class="flex-1 py-1.5 px-2 text-center text-xs font-medium text-on-surface-variant hover:text-on-surface transition-all duration-150">
               Spend &amp; CSV
@@ -1777,21 +1415,11 @@
 
         <!-- Category Filter Pills -->
         <div class="flex items-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
-          <button data-action="set-wallet-cat" data-cat="all" class="flex-none px-3.5 py-1.5 rounded-full text-xs font-bold font-label bg-primary-container text-on-primary-container shadow-md shadow-primary-container/10 active:scale-95 transition-transform">
-            All (8)
-          </button>
-          <button data-action="set-wallet-cat" data-cat="flights" class="flex-none px-3.5 py-1.5 rounded-full text-xs font-medium font-label bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:border-primary/50 hover:text-on-surface transition-colors active:scale-95">
-            Flights (2)
-          </button>
-          <button data-action="set-wallet-cat" data-cat="hotels" class="flex-none px-3.5 py-1.5 rounded-full text-xs font-medium font-label bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:border-primary/50 hover:text-on-surface transition-colors active:scale-95">
-            Hotels (2)
-          </button>
-          <button data-action="set-wallet-cat" data-cat="attractions" class="flex-none px-3.5 py-1.5 rounded-full text-xs font-medium font-label bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:border-primary/50 hover:text-on-surface transition-colors active:scale-95">
-            Attractions (3)
-          </button>
-          <button data-action="set-wallet-cat" data-cat="transport" class="flex-none px-3.5 py-1.5 rounded-full text-xs font-medium font-label bg-surface-container-low border border-outline-variant/40 text-on-surface-variant hover:border-primary/50 hover:text-on-surface transition-colors active:scale-95">
-            Transit (1)
-          </button>
+          ${[["all", "All"], ...[...new Set(allBookings.map(b => b.category))].map(c => [c, c[0].toUpperCase() + c.slice(1)])].map(([c, label]) => {
+            const n = c === "all" ? allBookings.length : allBookings.filter(b => b.category === c).length;
+            const on = STATE.walletCat === c;
+            return `<button data-action="set-wallet-cat" data-cat="${esc(c)}" class="flex-none px-3.5 py-1.5 rounded-full text-xs font-label active:scale-95 ${on ? "font-bold bg-primary-container text-on-primary-container" : "font-medium bg-surface-container-low border border-outline-variant/40 text-on-surface-variant"}">${esc(label)} (${n})</button>`;
+          }).join("")}
         </div>
 
         <!-- Pass Stack Metrics & Summary Banner -->
@@ -1803,313 +1431,19 @@
               </div>
               <div>
                 <div class="flex items-center gap-1.5">
-                  <span class="text-xs font-bold text-on-surface tracking-tight">8 Active Passes</span>
+                  <span class="text-xs font-bold text-on-surface tracking-tight">${bookedCount} Booked</span>
                   <span class="w-1 h-1 rounded-full bg-outline"></span>
-                  <span class="text-[11px] text-tertiary font-medium">All Confirmed</span>
+                  <span class="text-[11px] ${openCount ? "text-amber-300" : "text-tertiary"} font-medium">${openCount ? `${openCount} open` : "All Confirmed"}</span>
                 </div>
-                <p class="text-[11px] text-on-surface-variant font-label tracking-tight mt-0.5">Offline Cached • Apple Wallet Sync Ready</p>
+                <p class="text-[11px] text-on-surface-variant font-label tracking-tight mt-0.5">Vouchers cached for offline use</p>
               </div>
             </div>
-            <button data-action="toggle-wallet-all" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-xs font-medium text-primary active:scale-95 transition-all">
-              <span class="material-symbols-outlined text-sm" data-icon="add">add</span>
-              <span>Add PDF</span>
-            </button>
           </div>
         </section>
 
         <!-- Docket Stack Cards Feed -->
         <main class="px-4 space-y-4">
-          ${extraBookingsList}
-          <!-- Pass 1: Flight Boarding Pass (Flighty Notched Ticket Aesthetic) -->
-          <article class="relative overflow-hidden rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-lg">
-            <div class="p-4 pb-3">
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-md bg-secondary-container/50 border border-secondary/30 flex items-center justify-center text-secondary">
-                    <span class="material-symbols-outlined text-sm" data-icon="airlines">airlines</span>
-                  </div>
-                  <span class="text-xs font-bold text-on-surface tracking-tight">SINGAPORE AIRLINES</span>
-                  <span class="text-[11px] font-label text-on-surface-variant font-medium">• SQ 503 • NOV 18</span>
-                </div>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-label bg-tertiary/15 text-tertiary border border-tertiary/25">
-                  CONFIRMED
-                </span>
-              </div>
-              <!-- Route Segment Display -->
-              <div class="flex items-center justify-between py-2">
-                <div>
-                  <div class="font-label text-2xl font-bold tracking-tight text-on-surface">SIN</div>
-                  <div class="font-label text-xs font-semibold text-primary">14:20</div>
-                  <div class="text-[11px] text-on-surface-variant">Changi T2</div>
-                </div>
-                <div class="flex-1 px-4 flex flex-col items-center">
-                  <span class="text-[10px] font-label text-on-surface-variant font-medium mb-1">1h 05m • Non-stop</span>
-                  <div class="relative w-full flex items-center justify-center">
-                    <div class="w-full border-t border-dashed border-outline-variant"></div>
-                    <div class="absolute bg-surface-container-low px-1.5 text-primary">
-                      <span class="material-symbols-outlined text-sm rotate-90" data-icon="flight">flight</span>
-                    </div>
-                  </div>
-                  <span class="text-[9px] font-label text-outline mt-1 uppercase tracking-wider">Airbus A350-900</span>
-                </div>
-                <div class="text-right">
-                  <div class="font-label text-2xl font-bold tracking-tight text-on-surface">KUL</div>
-                  <div class="font-label text-xs font-semibold text-primary">15:25</div>
-                  <div class="text-[11px] text-on-surface-variant">KLIA T1</div>
-                </div>
-              </div>
-            </div>
-            <!-- Ticket Perforation Spine with Circular Cutouts -->
-            <div class="relative flex items-center my-0.5">
-              <div class="ticket-notch-left"></div>
-              <div class="w-full border-t border-dashed border-outline-variant/60 mx-4"></div>
-              <div class="ticket-notch-right"></div>
-            </div>
-            <!-- Ticket Bottom Details Section -->
-            <div class="p-4 pt-3 bg-surface-container/40">
-              <div class="grid grid-cols-4 gap-2 py-2 mb-3 border-b border-outline-variant/20">
-                <div>
-                  <span class="block text-[10px] font-label text-outline uppercase tracking-wider">Terminal</span>
-                  <span class="font-label text-xs font-bold text-on-surface">T2 • Gate E5</span>
-                </div>
-                <div>
-                  <span class="block text-[10px] font-label text-outline uppercase tracking-wider">Seat</span>
-                  <span class="font-label text-xs font-bold text-primary">14A</span>
-                  <span class="block text-[9px] text-on-surface-variant">Window</span>
-                </div>
-                <div>
-                  <span class="block text-[10px] font-label text-outline uppercase tracking-wider">Class</span>
-                  <span class="font-label text-xs font-bold text-on-surface">Economy (Y)</span>
-                </div>
-                <div class="text-right">
-                  <span class="block text-[10px] font-label text-outline uppercase tracking-wider">Baggage</span>
-                  <span class="font-label text-xs font-bold text-on-surface">25 KG</span>
-                </div>
-              </div>
-              <!-- Action bar -->
-              <div class="flex items-center justify-between pt-1">
-                ${!IS_PUBLIC_STRIPPED ? `
-                  <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-high border border-outline-variant/30">
-                    <span class="text-[10px] font-label text-outline">PNR:</span>
-                    <span class="font-label text-xs font-bold tracking-wider text-on-surface">K9M2X4</span>
-                    <button data-copy="A82D8M" aria-label="Copy PNR" class="ml-1 text-on-surface-variant hover:text-primary">
-                      <span class="material-symbols-outlined text-xs" data-icon="content_copy">content_copy</span>
-                    </button>
-                  </div>
-                ` : `<span class="text-[10px] font-label text-outline">PNR Scrubbed</span>`}
-                <div class="flex items-center gap-2">
-                  <button data-action="open-qr-modal" data-title="Flight Boarding Pass · SQ 503" data-ref="K9M2X4" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant border border-outline-variant/40 text-xs font-medium text-on-surface active:scale-95 transition-all">
-                    <span class="material-symbols-outlined text-sm" data-icon="barcode_scanner">barcode_scanner</span>
-                    <span>Pass</span>
-                  </button>
-                  <a href="./vouchers/sep-21-flight-del-sin-return.pdf" target="_blank" rel="noopener" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-on-primary font-semibold text-xs active:scale-95 transition-all shadow-sm">
-                    <span>Check-in</span>
-                    <span class="material-symbols-outlined text-xs" data-icon="north_east">north_east</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- Pass 2: Hotel Reservation Pass Card -->
-          <article class="relative overflow-hidden rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-lg">
-            <div class="p-4 pb-3">
-              <div class="flex items-start justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-md bg-primary-container/20 border border-primary-container/30 flex items-center justify-center text-primary-container">
-                    <span class="material-symbols-outlined text-sm" data-icon="hotel">hotel</span>
-                  </div>
-                  <div>
-                    <span class="block text-[10px] font-label uppercase tracking-widest text-outline">STAYS • SINGAPORE</span>
-                    <h3 class="text-sm font-bold text-on-surface tracking-tight">Marina Bay Sands</h3>
-                  </div>
-                </div>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-label bg-tertiary/15 text-tertiary border border-tertiary/25">
-                  PAID • 3 NIGHTS
-                </span>
-              </div>
-              <!-- Room Category & Spec -->
-              <div class="flex items-center justify-between p-2.5 rounded-xl bg-surface-container/60 border border-outline-variant/20 mb-3">
-                <div class="flex items-center gap-2.5">
-                  <span class="material-symbols-outlined text-secondary text-lg" data-icon="king_bed">king_bed</span>
-                  <div>
-                    <div class="text-xs font-semibold text-on-surface">Grand King City View • Tower 2</div>
-                    <div class="text-[11px] text-on-surface-variant font-label">Breakfast included • Infinity Pool Access</div>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <span class="text-[10px] font-label text-outline">FLOOR</span>
-                  <div class="font-label text-xs font-bold text-on-surface">38F+</div>
-                </div>
-              </div>
-              <!-- Stay Timeline Schedule -->
-              <div class="grid grid-cols-2 gap-3 py-1">
-                <div class="p-2.5 rounded-xl bg-surface-container-high/40 border border-outline-variant/20">
-                  <span class="block text-[10px] font-label text-outline uppercase tracking-wider">Check-in</span>
-                  <div class="font-label text-xs font-bold text-on-surface mt-0.5">NOV 14, 2026</div>
-                  <span class="text-[11px] text-tertiary font-label">From 15:00</span>
-                </div>
-                <div class="p-2.5 rounded-xl bg-surface-container-high/40 border border-outline-variant/20">
-                  <span class="block text-[10px] font-label text-outline uppercase tracking-wider">Check-out</span>
-                  <div class="font-label text-xs font-bold text-on-surface mt-0.5">NOV 17, 2026</div>
-                  <span class="text-[11px] text-on-surface-variant font-label">Until 11:00</span>
-                </div>
-              </div>
-            </div>
-            <!-- Ticket Perforation Spine -->
-            <div class="relative flex items-center my-0.5">
-              <div class="ticket-notch-left"></div>
-              <div class="w-full border-t border-dashed border-outline-variant/60 mx-4"></div>
-              <div class="ticket-notch-right"></div>
-            </div>
-            <!-- Hotel Location & Mobile Key Section -->
-            <div class="p-4 pt-3 bg-surface-container/40">
-              <div class="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <p class="text-xs text-on-surface font-medium leading-snug">10 Bayfront Ave, Singapore 018956</p>
-                  <p class="text-[11px] text-on-surface-variant flex items-center gap-1 mt-0.5">
-                    <span class="material-symbols-outlined text-[13px] text-primary" data-icon="subway">subway</span>
-                    Bayfront MRT (CE1/DT16) Direct
-                  </p>
-                </div>
-                <a href="${googleMapsDirUrl("Marina Bay Sands Singapore", 1.2834, 103.8607)}" target="_blank" rel="noopener" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant border border-outline-variant/30 text-xs font-medium text-primary active:scale-95 transition-all flex-shrink-0">
-                  <span class="material-symbols-outlined text-xs" data-icon="navigation">navigation</span>
-                  <span>Maps</span>
-                </a>
-              </div>
-              <div class="flex items-center justify-between pt-1">
-                ${!IS_PUBLIC_STRIPPED ? `
-                  <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-container-high border border-outline-variant/30">
-                    <span class="text-[10px] font-label text-outline">REF:</span>
-                    <span class="font-label text-xs font-bold tracking-wider text-on-surface">MBS-904812</span>
-                    <button data-copy="2042003342" aria-label="Copy Reference" class="ml-1 text-on-surface-variant hover:text-primary">
-                      <span class="material-symbols-outlined text-xs" data-icon="content_copy">content_copy</span>
-                    </button>
-                  </div>
-                ` : `<span class="text-[10px] font-label text-outline">Ref Scrubbed</span>`}
-                <div class="flex items-center gap-1.5 text-xs text-tertiary font-medium">
-                  <span class="material-symbols-outlined text-sm" data-icon="key">key</span>
-                  <span>Mobile Key Ready</span>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- Pass 3: Attraction Voucher Pass Card (With QR Code Mock) -->
-          <article class="relative overflow-hidden rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-lg">
-            <div class="p-4 pb-3">
-              <div class="flex items-start justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-md bg-tertiary/15 border border-tertiary/25 flex items-center justify-center text-tertiary">
-                    <span class="material-symbols-outlined text-sm" data-icon="local_activity">local_activity</span>
-                  </div>
-                  <div>
-                    <span class="block text-[10px] font-label uppercase tracking-widest text-outline">ATTRACTION VOUCHER</span>
-                    <h3 class="text-sm font-bold text-on-surface tracking-tight">Gardens by the Bay</h3>
-                  </div>
-                </div>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-label bg-amber-400/10 text-amber-300 border border-amber-400/20">
-                  TIMED ENTRY: 10:30 AM
-                </span>
-              </div>
-              <p class="text-xs font-medium text-on-surface-variant mb-3">Cloud Forest, Flower Dome &amp; OCBC Skyway included</p>
-              <div class="flex items-center justify-between p-3 rounded-xl bg-surface-container/70 border border-outline-variant/20">
-                <div>
-                  <div class="text-[10px] font-label text-outline uppercase tracking-wider">Date • Visitors</div>
-                  <div class="font-label text-xs font-bold text-on-surface mt-0.5">NOV 16, 2026 • 2 Adults</div>
-                  <div class="text-[11px] text-tertiary mt-0.5">Skip-the-line barcode pass</div>
-                </div>
-                <!-- Stylized QR preview -->
-                <div class="p-1.5 rounded-lg bg-on-surface text-surface flex flex-col items-center">
-                  <div class="w-10 h-10 grid grid-cols-4 gap-0.5 bg-on-surface p-0.5">
-                    <div class="bg-surface-dim"></div><div class="bg-surface-dim"></div><div class="bg-surface-dim"></div><div class="bg-surface"></div>
-                    <div class="bg-surface-dim"></div><div class="bg-surface"></div><div class="bg-surface-dim"></div><div class="bg-surface-dim"></div>
-                    <div class="bg-surface-dim"></div><div class="bg-surface-dim"></div><div class="bg-surface"></div><div class="bg-surface-dim"></div>
-                    <div class="bg-surface"></div><div class="bg-surface-dim"></div><div class="bg-surface-dim"></div><div class="bg-surface-dim"></div>
-                  </div>
-                  <span class="text-[8px] font-label font-bold text-surface-dim mt-0.5">GBB-8842</span>
-                </div>
-              </div>
-            </div>
-            <!-- Ticket Perforation Spine -->
-            <div class="relative flex items-center my-0.5">
-              <div class="ticket-notch-left"></div>
-              <div class="w-full border-t border-dashed border-outline-variant/60 mx-4"></div>
-              <div class="ticket-notch-right"></div>
-            </div>
-            <!-- Pass Action Area -->
-            <div class="p-4 pt-3 bg-surface-container/40 flex items-center justify-between">
-              <div class="flex items-center gap-1.5 text-xs text-on-surface-variant">
-                <span class="material-symbols-outlined text-sm text-outline" data-icon="info">info</span>
-                <span>Direct Turnstile Scan</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <a href="${googleMapsDirUrl("Gardens by the Bay Singapore", 1.2816, 103.8636)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg bg-surface-container-high border border-outline-variant/30 text-xs font-medium text-on-surface active:scale-95 transition-all">
-                  Directions
-                </a>
-                <button data-action="open-qr-modal" data-title="Gardens by the Bay Voucher" data-ref="GBB-8842" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-semibold text-xs active:scale-95 transition-all shadow-sm">
-                  <span class="material-symbols-outlined text-xs" data-icon="qr_code">qr_code</span>
-                  <span>Show QR Voucher</span>
-                </button>
-              </div>
-            </div>
-          </article>
-
-          <!-- Pass 4: Cross-Border Bus / Transport Pass Card -->
-          <article class="relative overflow-hidden rounded-2xl bg-surface-container-low border border-outline-variant/40 shadow-lg">
-            <div class="p-4 pb-3">
-              <div class="flex items-start justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <div class="w-6 h-6 rounded-md bg-secondary-container/30 border border-secondary/30 flex items-center justify-center text-secondary">
-                    <span class="material-symbols-outlined text-sm" data-icon="directions_bus">directions_bus</span>
-                  </div>
-                  <div>
-                    <span class="block text-[10px] font-label uppercase tracking-widest text-outline">CROSS-BORDER COACH</span>
-                    <h3 class="text-sm font-bold text-on-surface tracking-tight">Aeroline Luxury Coach</h3>
-                  </div>
-                </div>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold font-label bg-surface-container-high text-primary border border-primary/20">
-                  SEAT 04 &amp; 05
-                </span>
-              </div>
-              <div class="p-3 rounded-xl bg-surface-container/50 border border-outline-variant/20 mb-2">
-                <div class="flex items-center justify-between mb-1.5">
-                  <span class="font-label text-xs font-bold text-on-surface">KUL → SIN</span>
-                  <span class="text-[11px] font-label text-primary font-semibold">NOV 20 • 10:00 AM</span>
-                </div>
-                <div class="text-[11px] text-on-surface-variant flex items-center gap-1">
-                  <span class="material-symbols-outlined text-xs text-outline" data-icon="pin_drop">pin_drop</span>
-                  <span>Corus Hotel (KL) → HarbourFront Centre (SG)</span>
-                </div>
-              </div>
-              <div class="flex items-center justify-between text-[11px] text-on-surface-variant pt-1">
-                <span class="font-label">Coach #AE-889 • Meal &amp; Wi-Fi</span>
-                <div class="flex items-center gap-1 font-label text-on-surface">
-                  <span class="text-outline">REF:</span>
-                  <span class="font-bold">AERO-4412</span>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- Pass 5: Secondary Connectivity/eSIM Voucher Card -->
-          <article class="p-3.5 rounded-2xl bg-surface-container-low/70 border border-outline-variant/30 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined text-lg" data-icon="sim_card">sim_card</span>
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h4 class="text-xs font-bold text-on-surface">Klook SG + MY 10GB 5G eSIM</h4>
-                  <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
-                </div>
-                <p class="text-[11px] font-label text-on-surface-variant mt-0.5">ICCID: 89650... ready for installation</p>
-              </div>
-            </div>
-            <button data-action="open-qr-modal" data-title="Klook SG + MY 10GB 5G eSIM" data-ref="ICCID-89650" class="px-2.5 py-1 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/30 text-xs font-medium text-primary">
-              Install
-            </button>
-          </article>
+          ${feed}
         </main>
         ${renderBottomNav("wallet")}
       </div>
@@ -2122,6 +1456,15 @@
   function renderWalletSpendView() {
     const expenses = loadExpenses();
     const isBudgetSplit = STATE.route === "wallet:budget";
+    const ceiling = Number(CFG.spendingCeiling) || 0;
+    const spentHome = expenses.reduce((t, x) => t + (Number(x.homeAmount) || 0), 0);
+    const pct = ceiling ? Math.round(spentHome / ceiling * 100) : 0;
+    const byCur = {}, byCat = {};
+    expenses.forEach(x => {
+      byCur[x.currency] = (byCur[x.currency] || 0) + (Number(x.amount) || 0);
+      byCat[x.category] = (byCat[x.category] || 0) + (Number(x.homeAmount) || 0);
+    });
+    const catRows = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
 
     let budgetSplitSection = "";
     if (isBudgetSplit && DATA.budget) {
@@ -2130,7 +1473,7 @@
         <section class="rounded-2xl bg-surface-container-low p-4 space-y-3 border border-primary/30">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-label uppercase tracking-wider text-primary font-bold">Planned Budget Breakdown</h2>
-            <span class="text-xs font-label text-on-surface">Cap: ${formatHome(b.ceiling || 155000)}</span>
+            <span class="text-xs font-label text-on-surface">Cap: ${formatHome(b.ceiling || ceiling)}</span>
           </div>
           ${b.fxNote ? `<p class="text-[11px] text-amber-300 bg-amber-500/10 p-2.5 rounded-xl leading-relaxed">${esc(b.fxNote)}</p>` : ""}
           <div class="space-y-2">
@@ -2171,7 +1514,7 @@
           <div class="flex items-center space-x-2">
             <div class="px-2 py-0.5 rounded-full bg-surface-container-high/80 text-[10px] font-label text-primary font-medium flex items-center gap-1 shadow-inner">
               <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-              1 ${PRIMARY_FX_CUR} ≈ ₹62.50
+              1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}
             </div>
             <button data-nav="#search:csv" aria-label="Search" class="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-150" type="button">
               <span class="material-symbols-outlined text-lg" data-icon="search">search</span>
@@ -2183,7 +1526,7 @@
         <nav aria-label="Wallet Views" class="px-4 pt-2.5 pb-3 w-full">
           <div class="grid grid-cols-3 p-1 rounded-xl bg-surface-container-lowest/80 backdrop-blur-md">
             <button data-nav="#wallet" class="py-1.5 text-xs font-medium text-on-surface-variant rounded-lg hover:text-on-surface transition-all active:scale-95 duration-150 flex items-center justify-center gap-1">
-              Passes (8)
+              Passes (${(DATA.bookings?.bookings || []).length})
             </button>
             <button data-nav="#wallet:spend" class="py-1.5 text-xs font-semibold ${!isBudgetSplit ? "text-primary bg-surface-container-high shadow-sm" : "text-on-surface-variant"} rounded-lg flex items-center justify-center gap-1 active:scale-95 duration-150 transition-all">
               <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
@@ -2198,113 +1541,31 @@
         <!-- Main Content Canvas -->
         <main class="flex-1 px-4 space-y-4">
           ${budgetSplitSection}
-          <!-- Section: Active Flight Boarding Pass -->
-          <section aria-labelledby="boarding-pass-title">
-            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-b from-surface-container to-surface-container-low shadow-lg transition-transform duration-200">
-              <div class="p-4 pb-3 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <div class="w-6 h-6 rounded-md bg-secondary-container/50 flex items-center justify-center text-primary">
-                    <span class="material-symbols-outlined text-sm" data-icon="airlines">airlines</span>
-                  </div>
-                  <span class="text-xs font-label font-bold tracking-wider text-on-surface-variant" id="boarding-pass-title">SINGAPORE AIRLINES · SQ 503</span>
-                </div>
-                <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary font-label text-[11px] font-semibold gap-1">
-                  <span class="w-1.5 h-1.5 rounded-full bg-tertiary shadow-[0_0_6px_#4ee6aa]"></span>
-                  CONFIRMED
-                </div>
-              </div>
-              <div class="px-4 py-2">
-                <div class="flex items-center justify-between font-label">
-                  <div class="text-left">
-                    <div class="text-2xl font-bold tracking-tight text-on-surface">SIN</div>
-                    <div class="text-xs font-medium text-primary">14:20</div>
-                  </div>
-                  <div class="flex-1 flex flex-col items-center px-3">
-                    <div class="text-[10px] text-on-surface-variant font-label mb-1">1h 05m · Direct</div>
-                    <div class="w-full flex items-center justify-center relative">
-                      <div class="w-full border-t border-dashed border-outline-variant/60"></div>
-                      <span class="material-symbols-outlined text-primary text-sm absolute bg-surface-container px-1 transform rotate-90" data-icon="flight">flight</span>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <div class="text-2xl font-bold tracking-tight text-on-surface">KUL</div>
-                    <div class="text-xs font-medium text-primary">15:25</div>
-                  </div>
-                </div>
-                <div class="flex justify-between items-center text-[11px] text-on-surface-variant mt-1.5 font-headline">
-                  <span class="truncate max-w-[130px]">Singapore Changi T2</span>
-                  <span class="truncate max-w-[130px] text-right">Kuala Lumpur Intl T1</span>
-                </div>
-              </div>
-              <div class="relative my-3 w-full flex items-center">
-                <div class="ticket-cutout-left"></div>
-                <div class="w-full border-b border-dashed border-outline-variant/50 mx-4"></div>
-                <div class="ticket-cutout-right"></div>
-              </div>
-              <div class="p-4 pt-1 flex items-center justify-between text-xs">
-                <div class="space-y-0.5">
-                  <div class="font-label text-on-surface font-semibold tracking-tight">TERMINAL 2 · GATE E5</div>
-                  <div class="text-[11px] text-on-surface-variant">SEAT 14A (Window)</div>
-                </div>
-                <div class="flex items-center space-x-2">
-                  ${!IS_PUBLIC_STRIPPED ? `
-                    <button data-copy="K9M2X4" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-label text-xs font-medium space-x-1.5 transition-colors active:scale-95" type="button">
-                      <span>PNR: K9M2X4</span>
-                      <span class="material-symbols-outlined text-xs text-on-surface-variant" data-icon="content_copy">content_copy</span>
-                    </button>
-                  ` : ""}
-                  <button data-action="open-qr-modal" data-title="SQ 503 · SIN → KUL" data-ref="K9M2X4" aria-label="Open Barcode View" class="p-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-primary active:scale-95 transition-all" type="button">
-                    <span class="material-symbols-outlined text-lg" data-icon="qr_code_2">qr_code_2</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Section: Trip Spend & Multi-Currency Bento Summary -->
+          <!-- Section: Trip Spend (from logged expenses) -->
           <section aria-labelledby="spend-summary-heading" class="rounded-2xl bg-surface-container-low p-4 space-y-3.5 shadow-sm">
             <div class="flex items-center justify-between">
               <span class="text-xs font-label uppercase tracking-wider text-on-surface-variant font-medium" id="spend-summary-heading">Trip Spend &amp; Multi-Currency</span>
-              <span class="text-[11px] font-label text-primary font-medium">Cap: ₹85,000</span>
+              ${ceiling ? `<span class="text-[11px] font-label text-primary font-medium">Cap: ${formatHome(ceiling)}</span>` : ""}
             </div>
             <div>
               <div class="flex items-baseline space-x-2">
-                <span class="font-label text-3xl font-extrabold tracking-tight text-on-surface">₹48,920</span>
-                <span class="text-xs font-label text-on-surface-variant font-medium">INR Total</span>
+                <span class="font-label text-3xl font-extrabold tracking-tight text-on-surface">${formatHome(spentHome)}</span>
+                <span class="text-xs font-label text-on-surface-variant font-medium">${esc(HOME_CUR)} Total</span>
               </div>
               <div class="flex flex-wrap gap-1.5 mt-2">
-                <span class="px-2 py-0.5 rounded-md bg-surface-container text-[11px] font-label text-on-surface">S$ 512.40 <span class="text-on-surface-variant">(SGD)</span></span>
-                <span class="px-2 py-0.5 rounded-md bg-surface-container text-[11px] font-label text-on-surface">RM 680.00 <span class="text-on-surface-variant">(MYR)</span></span>
-                <span class="px-2 py-0.5 rounded-md bg-surface-container text-[11px] font-label text-on-surface-variant">US$ 0.00</span>
+                ${Object.entries(byCur).map(([cur, amt]) => `<span class="px-2 py-0.5 rounded-md bg-surface-container text-[11px] font-label text-on-surface">${getCurSymbol(cur)}${amt.toFixed(2)} <span class="text-on-surface-variant">(${esc(cur)})</span></span>`).join("")}
               </div>
             </div>
+            ${ceiling ? `
             <p class="text-[11px] text-on-surface-variant font-headline">
-              <span class="text-primary font-semibold">57%</span> of ₹85,000 budget used · <span class="text-on-surface font-medium">₹36,080 remaining</span>
+              <span class="text-primary font-semibold">${pct}%</span> of ${formatHome(ceiling)} used · <span class="text-on-surface font-medium">${formatHome(ceiling - spentHome)} remaining</span>
             </p>
             <div class="w-full h-2 rounded-full bg-surface-container-highest overflow-hidden flex">
-              <div class="h-full bg-primary-container" style="width: 42%" title="Flights 42%"></div>
-              <div class="h-full bg-secondary-container" style="width: 28%" title="Stays 28%"></div>
-              <div class="h-full bg-[#fbbf24]" style="width: 18%" title="Food 18%"></div>
-              <div class="h-full bg-tertiary" style="width: 12%" title="Sights 12%"></div>
-            </div>
-            <div class="grid grid-cols-4 gap-1 text-[10px] font-label pt-0.5">
-              <div class="flex items-center space-x-1 truncate">
-                <span class="w-2 h-2 rounded-full bg-primary-container shrink-0"></span>
-                <span class="text-on-surface-variant">Flights <span class="text-on-surface font-medium">42%</span></span>
-              </div>
-              <div class="flex items-center space-x-1 truncate">
-                <span class="w-2 h-2 rounded-full bg-secondary-container shrink-0"></span>
-                <span class="text-on-surface-variant">Stays <span class="text-on-surface font-medium">28%</span></span>
-              </div>
-              <div class="flex items-center space-x-1 truncate">
-                <span class="w-2 h-2 rounded-full bg-[#fbbf24] shrink-0"></span>
-                <span class="text-on-surface-variant">Food <span class="text-on-surface font-medium">18%</span></span>
-              </div>
-              <div class="flex items-center space-x-1 truncate">
-                <span class="w-2 h-2 rounded-full bg-tertiary shrink-0"></span>
-                <span class="text-on-surface-variant">Sights <span class="text-on-surface font-medium">12%</span></span>
-              </div>
-            </div>
+              <div class="h-full bg-primary-container" style="width: ${Math.min(pct, 100)}%"></div>
+            </div>` : ""}
+            ${catRows.length ? `<div class="grid grid-cols-2 gap-1 text-[10px] font-label pt-0.5">
+              ${catRows.map(([c, v]) => `<span class="text-on-surface-variant truncate">${esc(c)} <span class="text-on-surface font-medium">${spentHome ? Math.round(v / spentHome * 100) : 0}%</span></span>`).join("")}
+            </div>` : ""}
           </section>
 
           <!-- Section: Quick Actions & CSV Import Banner -->
@@ -2312,25 +1573,11 @@
             <div class="grid grid-cols-2 gap-2.5">
               <button data-action="open-add-expense" class="w-full flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-primary-container text-on-primary-container font-headline text-xs font-semibold tracking-tight shadow-md active:scale-95 transition-all" type="button">
                 <span class="material-symbols-outlined text-base" data-icon="add">add</span>
-                <span>+ Log Expense</span>
+                <span>Log Expense</span>
               </button>
               <button data-nav="#search:csv" class="w-full flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-secondary font-headline text-xs font-semibold tracking-tight active:scale-95 transition-all" type="button">
                 <span class="material-symbols-outlined text-base text-secondary" data-icon="upload_file">upload_file</span>
                 <span>Import Card CSV</span>
-              </button>
-            </div>
-            <div class="p-3 rounded-xl bg-surface-container-low/90 backdrop-blur-md flex items-start justify-between gap-3 shadow-inner">
-              <div class="flex items-start space-x-2.5">
-                <div class="w-5 h-5 rounded-md bg-primary-container/20 flex items-center justify-center text-primary mt-0.5 shrink-0">
-                  <span class="material-symbols-outlined text-xs" data-icon="auto_awesome">auto_awesome</span>
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-on-surface leading-tight">3 new transactions detected from card</p>
-                  <p class="text-[10px] text-on-surface-variant font-label mt-0.5">Auto-FX SGD→INR applied</p>
-                </div>
-              </div>
-              <button data-nav="#search:csv" class="px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-variant text-[11px] font-label font-medium text-primary whitespace-nowrap active:scale-95 transition-transform shrink-0" type="button">
-                Review &amp; Merge
               </button>
             </div>
           </section>
@@ -2339,7 +1586,7 @@
           <section aria-labelledby="recent-transactions-heading" class="space-y-2.5 pt-1">
             <div class="flex items-center justify-between px-1">
               <h2 class="text-xs font-label uppercase tracking-wider text-on-surface-variant font-medium" id="recent-transactions-heading">Recent Transactions</h2>
-              <button data-action="export-expenses-csv" class="text-xs font-label font-medium text-primary hover:underline" type="button">See All (${expenses.length + 15}) →</button>
+              <button data-action="export-expenses-csv" class="text-xs font-label font-medium text-primary hover:underline" type="button">Export CSV (${expenses.length})</button>
             </div>
             <div class="space-y-1.5">
               ${expenses.map(tx => {
@@ -2396,7 +1643,7 @@
           <div class="flex items-center gap-2">
             <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30 text-[11px] font-label font-medium text-primary tracking-tight">
               <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
-              1 ${PRIMARY_FX_CUR} ≈ ₹62.50
+              1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}
             </div>
             <button data-nav="#wallet:spend" aria-label="Dismiss" class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform">
               <span class="material-symbols-outlined text-lg" data-icon="close">close</span>
@@ -2917,7 +2164,7 @@
     if (!dlg) return;
     dlg.innerHTML = `
       <div class="fixed inset-0 flex items-center justify-center p-4" data-action="close-modal-backdrop">
-        <div class="w-full max-w-sm rounded-3xl bg-surface-container-low border border-outline-variant/40 p-5 shadow-2xl space-y-4 text-center" onclick="event.stopPropagation()">
+        <div class="w-full max-w-sm rounded-3xl bg-surface-container-low border border-outline-variant/40 p-5 shadow-2xl space-y-4 text-center">
           <div class="flex items-center justify-between">
             <span class="font-label text-xs font-bold uppercase tracking-wider text-primary">WALLET ENTRY PASS</span>
             <button data-action="close-modal" class="p-1 rounded-full text-on-surface-variant hover:text-on-surface">
@@ -2941,7 +2188,7 @@
     if (!dlg) return;
     dlg.innerHTML = `
       <div class="fixed inset-0 flex items-end justify-center" data-action="close-modal-backdrop">
-        <div class="w-full max-w-md rounded-t-3xl bg-surface-container-low border-t border-outline-variant/40 p-5 shadow-2xl space-y-3.5" onclick="event.stopPropagation()">
+        <div class="w-full max-w-md rounded-t-3xl bg-surface-container-low border-t border-outline-variant/40 p-5 shadow-2xl space-y-3.5">
           <div class="w-10 h-1.5 rounded-full bg-outline-variant/50 mx-auto"></div>
           <div class="flex items-center justify-between">
             <h3 class="font-headline text-base font-bold text-on-surface">Log New Expense</h3>
@@ -2992,11 +2239,11 @@
         const amount = parseFloat(String(fd.get("amount") || "0")) || 0;
         const currency = String(fd.get("currency") || PRIMARY_FX_CUR);
         const category = String(fd.get("category") || "Food");
-        const rate = FX_RATES[currency] || 62.5;
+        const rate = FX_RATES[currency] || 1;
         const list = loadExpenses();
         list.unshift({
           id: `exp-${Date.now()}`,
-          date: "Just now",
+          date: todayISO(),
           merchant,
           note: category,
           category,
@@ -3071,7 +2318,10 @@
     if (savedSearch) {
       savedSearch.addEventListener("input", e => {
         STATE.savedQuery = e.target.value;
-        renderApp();
+        const pos = e.target.selectionStart;
+        renderApp(); // ponytail: full re-render, then restore focus; re-render results only if it gets slow
+        const el = document.getElementById("saved-places-search");
+        if (el) { el.focus(); el.setSelectionRange(pos, pos); }
       });
     }
   }
@@ -3107,7 +2357,7 @@
     if (action === "cycle-today-day") {
       const days = (DATA.itinerary?.days || []).map(d => d.day);
       if (!days.length) return;
-      const curIdx = days.indexOf(STATE.todayDay);
+      const curIdx = days.indexOf(STATE.todayDay || activeDayId());
       STATE.todayDay = curIdx + 1 < days.length ? days[curIdx + 1] : null;
       renderApp();
     } else if (action === "set-today-day") {
@@ -3159,7 +2409,7 @@
       openQrModal(actEl.getAttribute("data-title"), actEl.getAttribute("data-ref"));
     } else if (action === "open-add-expense") {
       openAddExpenseModal();
-    } else if (action === "close-modal" || action === "close-modal-backdrop") {
+    } else if (action === "close-modal" || (action === "close-modal-backdrop" && e.target === actEl)) {
       const dlg = document.getElementById("app-modal");
       if (dlg && dlg.open) dlg.close();
     } else if (action === "trigger-csv-upload") {

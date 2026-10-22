@@ -1,7 +1,7 @@
 /* ── Service Worker ───────────────────────────────────────────────
    Bump CACHE for each new trip (or each significant update).
    ─────────────────────────────────────────────────────────────── */
-const CACHE = "trip-cache-v15"; // keep in sync with TRIP_CONFIG.swCacheName
+const CACHE = "trip-cache-v17"; // keep in sync with TRIP_CONFIG.swCacheName
 
 const STATIC = [
   "./",
@@ -37,14 +37,16 @@ const STATIC = [
 */
 const VOUCHERS = [];
 
+// Only cache clean 200s. A redirected response (e.g. auth 302 → /login) served
+// to a navigation makes Chrome fail with ERR_FAILED, so never store one.
+const cacheable = r => r && ((r.ok && !r.redirected) || r.type === "opaque");
+const put = (c, u, r) => cacheable(r) ? c.put(u, r) : null;
+
 self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC)).then(() =>
-      caches.open(CACHE).then(c =>
-        Promise.allSettled(VOUCHERS.map(v => c.add(new Request(v)).catch(() => {})))
-      )
-    )
-  );
+  // ponytail: best-effort per file — one missing asset (icon/voucher) must not block install
+  e.waitUntil(caches.open(CACHE).then(c =>
+    Promise.allSettled(STATIC.concat(VOUCHERS).map(u => fetch(u, { cache: "reload" }).then(r => put(c, u, r))))
+  ));
   self.skipWaiting();
 });
 
@@ -58,34 +60,38 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
-  const url = e.request.url;
+  const req = e.request;
+  if (req.method !== "GET") return;
+
+  // Navigations: network-first so auth redirects/login pages pass straight through;
+  // fall back to cached shell only when offline.
+  if (req.mode === "navigate") {
+    e.respondWith(
+      fetch(req).catch(() =>
+        caches.match("./index.html").then(r => r || Response.error())
+      )
+    );
+    return;
+  }
 
   // Network-first for live telemetry (Open-Meteo) with cache fallback
-  if (url.includes("api.open-meteo.com")) {
+  if (req.url.includes("api.open-meteo.com")) {
     e.respondWith(
-      fetch(e.request).then(res => {
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-        }
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => put(c, req, copy));
         return res;
-      }).catch(() => caches.match(e.request) || new Response("{}", { status: 503 }))
+      }).catch(() => caches.match(req).then(r => r || new Response("{}", { status: 503 })))
     );
     return;
   }
 
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res.ok || res.type === "opaque") {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-        }
-        return res;
-      }).catch(() => cached || new Response("", { status: 503, statusText: "Offline" }));
-    })
+    caches.match(req).then(cached => cached || fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => put(c, req, copy));
+      return res;
+    }).catch(() => new Response("", { status: 503, statusText: "Offline" })))
   );
 });
 
@@ -93,7 +99,7 @@ self.addEventListener("fetch", e => {
 self.addEventListener("message", e => {
   if (e.data === "SYNC") {
     caches.open(CACHE).then(c =>
-      Promise.allSettled(STATIC.map(u => fetch(u, { cache: "reload" }).then(r => r.ok ? c.put(u, r) : null)))
+      Promise.allSettled(STATIC.map(u => fetch(u, { cache: "reload" }).then(r => put(c, u, r))))
     ).then(() => e.source?.postMessage("SYNC_DONE"));
   }
 });
