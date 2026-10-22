@@ -35,21 +35,13 @@
     planShowAllBlocks: false,
     savedFilter: "all",
     savedQuery: "",
-    savedShowAll: false,
-    mapDay: "D3",
-    mapSelectedStop: 1,
-    mapLiveCanvas: false,
-    mapRouteOn: true,
-    mapRadarOn: true,
+    mapDay: null,
     walletCat: "all",
-    walletShowAll: false,
-    spendShowAll: false,
-    searchQuery: "satay",
+    searchQuery: "",
     searchFilter: "all",
     csvDrawerOpen: false,
     toolkitCity: Object.keys(CFG.cities || { SIN: {}, KUL: {} })[0] || "SIN",
     toolkitEditingNote: false,
-    toolkitShowFullIntel: false,
     liveWeather: {}
   };
 
@@ -145,67 +137,6 @@
     } catch (_) {}
   }
 
-  function getDefaultCsvRows() {
-    return [
-      {
-        id: "csv-1",
-        checked: true,
-        duplicate: false,
-        date: "Nov 15",
-        merchant: "Tiong Bahru Bakery",
-        category: "Food",
-        catStyle: "amber",
-        amount: 22.40,
-        currency: "SGD",
-        sym: "S$ 22.40",
-        homeAmount: 1400,
-        homeColor: "text-primary"
-      },
-      {
-        id: "csv-2",
-        checked: true,
-        duplicate: false,
-        date: "Nov 15",
-        merchant: "Grab Rides SG",
-        category: "Transit",
-        catStyle: "primary",
-        amount: 18.60,
-        currency: "SGD",
-        sym: "S$ 18.60",
-        homeAmount: 1162,
-        homeColor: "text-primary"
-      },
-      {
-        id: "csv-3",
-        checked: true,
-        duplicate: false,
-        date: "Nov 16",
-        merchant: "KLIA Ekspres Ticket",
-        category: "Transit",
-        catStyle: "secondary",
-        amount: 55.00,
-        currency: "MYR",
-        sym: "RM 55.00",
-        homeAmount: 1045,
-        homeColor: "text-secondary"
-      },
-      {
-        id: "csv-4",
-        checked: false,
-        duplicate: true,
-        date: "Nov 14",
-        merchant: "Gardens by the Bay",
-        category: "Sights",
-        catStyle: "error",
-        amount: 56.00,
-        currency: "SGD",
-        sym: "S$ 56.00",
-        homeAmount: 3500,
-        dupReason: "Pass #GBB-8842 already logged"
-      }
-    ];
-  }
-
   function loadCsvPreview() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.csvPending);
@@ -214,7 +145,7 @@
         if (parsed && Array.isArray(parsed.rows)) return parsed;
       }
     } catch (_) {}
-    return { filename: "hdfc_infina_nov2026.csv", rows: getDefaultCsvRows() };
+    return { filename: "", rows: [] };
   }
 
   function saveCsvPreview(obj) {
@@ -265,38 +196,70 @@
     return rows;
   }
 
+  // "1,234.56" / "1.234,56" / "(12.50)" / "-12.50" / "12.50 Dr" → signed number (NaN if none)
+  function parseMoney(raw) {
+    let t = String(raw || "").trim();
+    if (!t) return NaN;
+    let neg = /^\(.*\)$/.test(t) || /-/.test(t) || /\bdr\b/i.test(t);
+    t = t.replace(/[^0-9.,]/g, "");
+    if (/,\d{1,2}$/.test(t) && !/\.\d{1,2}$/.test(t)) t = t.replace(/\./g, "").replace(",", "."); // EU decimal comma
+    else t = t.replace(/,/g, "");
+    const n = parseFloat(t);
+    return isNaN(n) ? NaN : (neg ? -n : n);
+  }
+
+  const CUR_ALIASES = { "S$": "SGD", "SG$": "SGD", "RM": "MYR", "RS": "INR", "RS.": "INR", "₹": "INR", "INR": "INR", "US$": "USD", "$": "USD" };
+
+  function csvDupKey(date, amount, currency) {
+    return `${String(date).trim().toLowerCase()}|${Number(amount).toFixed(2)}|${currency}`;
+  }
+
   function convertCsvToPreviewRows(csvText, filename) {
     const rawRows = parseRFC4180(csvText);
-    if (rawRows.length < 2) return null;
-    const header = rawRows[0].map(h => h.toLowerCase());
-    const idxDate = header.findIndex(h => h.includes("date"));
-    const idxDesc = header.findIndex(h => h.includes("desc") || h.includes("merchant") || h.includes("narration") || h.includes("item"));
-    const idxAmt = header.findIndex(h => h.includes("amount") || h.includes("cost") || h.includes("value") || h.includes("debit"));
-    const idxCur = header.findIndex(h => h.includes("cur"));
-    const idxCat = header.findIndex(h => h.includes("cat") || h.includes("type"));
+    const fname = filename || "uploaded_statement.csv";
+    if (rawRows.length < 2) return { filename: fname, rows: [], error: "No data rows found in file." };
+    const header = rawRows[0].map(h => h.toLowerCase().replace(/[^a-z ]/g, "").trim());
+    const find = (...res) => { for (const re of res) { const i = header.findIndex(h => re.test(h)); if (i >= 0) return i; } return -1; };
+    const idxDate = find(/^(txn |transaction )?date$/, /^(posting|post|value) date$/, /date/);
+    const idxDesc = find(/^(description|merchant|narration|details|particulars|payee)$/, /desc|merchant|narration|particulars/);
+    const idxDebit = find(/^(debit|withdrawal)( amount)?$/, /^debit/, /withdrawal/);
+    const idxCredit = find(/^(credit|deposit)( amount)?$/, /^credit/, /deposit/);
+    const idxAmt = find(/^(amount|transaction amount|txn amount|amt)$/, /^amount/);
+    const idxCur = find(/^(currency|ccy|cur)$/, /^currency/);
+    const idxType = find(/^(type|dr ?cr|transaction type|txn type)$/);
+    const idxCat = find(/^category$/);
+    if (idxDebit < 0 && idxAmt < 0) return { filename: fname, rows: [], error: "No Amount or Debit column found in header." };
 
-    const existing = loadExpenses();
+    const seen = new Set(loadExpenses().map(e => csvDupKey(e.date, e.amount, e.currency)));
     const out = [];
+    let skippedCredits = 0;
 
     for (let r = 1; r < rawRows.length; r++) {
       const cols = rawRows[r];
-      const dateStr = (idxDate >= 0 ? cols[idxDate] : cols[0]) || "Trip";
-      const merchant = (idxDesc >= 0 ? cols[idxDesc] : cols[1]) || `Transaction #${r}`;
-      const rawAmt = (idxAmt >= 0 ? cols[idxAmt] : cols[2]) || "0";
-      const amt = parseFloat(String(rawAmt).replace(/[^0-9.-]+/g, "")) || 0;
-      if (amt <= 0) continue;
-      let cur = (idxCur >= 0 && cols[idxCur] ? cols[idxCur].toUpperCase() : PRIMARY_FX_CUR).trim();
-      if (!FX_RATES[cur]) cur = PRIMARY_FX_CUR;
-      const cat = (idxCat >= 0 && cols[idxCat] ? cols[idxCat] : inferExpenseCategory(merchant));
-      const rate = FX_RATES[cur] || 1;
-      const homeAmt = Math.round(amt * rate);
-      const isDup = existing.some(
-        e => e.merchant.toLowerCase() === merchant.toLowerCase() && Math.abs(Number(e.amount) - amt) < 0.01
-      );
+      const dateStr = (idxDate >= 0 ? cols[idxDate] : "") || "";
+      const merchant = (idxDesc >= 0 ? cols[idxDesc] : "") || `Transaction #${r}`;
+      let amt;
+      if (idxDebit >= 0) {
+        amt = Math.abs(parseMoney(cols[idxDebit]));
+        if (!amt && idxCredit >= 0 && parseMoney(cols[idxCredit])) { skippedCredits++; continue; }
+      } else {
+        // Single amount column: sign convention varies by bank → take magnitude, skip rows typed as credit/refund.
+        amt = Math.abs(parseMoney(cols[idxAmt]));
+        if (idxType >= 0 && /^(cr|credit|refund|reversal)/i.test(cols[idxType] || "")) { skippedCredits++; continue; }
+      }
+      if (!amt || isNaN(amt)) continue;
+      const rawCur = idxCur >= 0 ? String(cols[idxCur] || "").trim().toUpperCase() : "";
+      const cur = rawCur ? (CUR_ALIASES[rawCur] || rawCur) : PRIMARY_FX_CUR;
+      const knownCur = !!FX_RATES[cur];
+      const cat = (idxCat >= 0 && cols[idxCat]) || inferExpenseCategory(merchant);
+      const key = csvDupKey(dateStr, amt, cur);
+      const isDup = seen.has(key);
+      seen.add(key);
       out.push({
         id: `csv-live-${Date.now()}-${r}`,
-        checked: !isDup,
+        checked: !isDup && knownCur,
         duplicate: isDup,
+        unknownCur: !knownCur,
         date: dateStr.slice(0, 12),
         merchant: merchant.slice(0, 48),
         category: cat,
@@ -304,12 +267,20 @@
         amount: amt,
         currency: cur,
         sym: `${getCurSymbol(cur)}${amt.toFixed(2)}`,
-        homeAmount: homeAmt,
+        homeAmount: knownCur ? Math.round(amt * FX_RATES[cur]) : 0,
         homeColor: cur === "MYR" ? "text-secondary" : "text-primary",
-        dupReason: isDup ? "Already logged in wallet" : ""
+        dupReason: isDup ? "Same date + amount + currency already logged" : (!knownCur ? `Unknown currency "${rawCur}" — no FX rate in config` : "")
       });
     }
-    return { filename: filename || "uploaded_statement.csv", rows: out };
+    const error = out.length ? "" : `No debit rows found${skippedCredits ? ` (${skippedCredits} credits skipped)` : ""}.`;
+    return { filename: fname, rows: out, error, skippedCredits };
+  }
+
+  // Quote every cell; prefix formula-looking text so Excel/Sheets treat it as text.
+  function csvCell(v) {
+    let t = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(t) && isNaN(Number(t))) t = "'" + t;
+    return `"${t.replace(/"/g, '""')}"`;
   }
 
   function inferExpenseCategory(merchant) {
@@ -323,7 +294,8 @@
   function loadChecklist() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.checklist);
-      if (raw) return JSON.parse(raw);
+      const v = raw && JSON.parse(raw);
+      if (v && typeof v === "object" && !Array.isArray(v)) return v;
     } catch (_) {}
     return {};
   }
@@ -337,7 +309,8 @@
   function loadNotes() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.notes);
-      if (raw) return JSON.parse(raw);
+      const v = raw && JSON.parse(raw);
+      if (Array.isArray(v)) return v.map(String);
     } catch (_) {}
     return [
       "Buy Kaya Jam jars from **Ya Kun** at Changi T3 basement before flight to KUL.",
@@ -368,7 +341,7 @@
           feelsLike: Math.round(json.current.apparent_temperature),
           humidity: Math.round(json.current.relative_humidity_2m),
           wind: Math.round(json.current.wind_speed_10m),
-          uv: Math.round(json.current.uv_index || 8),
+          uv: json.current.uv_index == null ? null : Math.round(json.current.uv_index),
           code: json.current.weather_code,
           daily: json.daily || null,
           updatedAt: Date.now()
@@ -376,6 +349,25 @@
         localStorage.setItem(`${STORAGE_KEYS.weather}_${cityCode}`, JSON.stringify(STATE.liveWeather[cityCode]));
       }
     } catch (_) {}
+  }
+
+  function loadCachedWeather(cityCode) {
+    try {
+      const v = JSON.parse(localStorage.getItem(`${STORAGE_KEYS.weather}_${cityCode}`) || "null");
+      return v && typeof v.temp === "number" ? v : null;
+    } catch (_) { return null; }
+  }
+
+  // WMO weather code → [material icon, label]
+  function wmo(code) {
+    const c = Number(code);
+    if (c === 0) return ["sunny", "Clear"];
+    if (c <= 3) return ["partly_cloudy_day", "Partly cloudy"];
+    if (c <= 48) return ["foggy", "Fog"];
+    if (c <= 67 || (c >= 80 && c <= 82)) return ["rainy", "Rain"];
+    if (c <= 77 || c === 85 || c === 86) return ["weather_snowy", "Snow"];
+    if (c >= 95) return ["thunderstorm", "Thunderstorm"];
+    return ["cloud", "Cloudy"];
   }
 
   /* ── Shared Bottom Navigation Bar ────────────────────────────────────── */
@@ -437,9 +429,9 @@
           </div>
           <div class="space-y-2">
             ${items.map((item, idx) => {
-              const done = !!checks[idx];
+              const done = !!checks[item];
               return `
-                <button data-action="toggle-check" data-idx="${idx}" class="w-full p-2.5 rounded-xl bg-surface-container flex items-center gap-2.5 text-left">
+                <button data-action="toggle-check" data-item="${esc(item)}" class="w-full p-2.5 rounded-xl bg-surface-container flex items-center gap-2.5 text-left">
                   <span class="material-symbols-outlined text-lg ${done ? "text-tertiary" : "text-outline"}" style="font-variation-settings: 'FILL' ${done ? 1 : 0};">
                     ${done ? "check_box" : "check_box_outline_blank"}
                   </span>
@@ -509,7 +501,7 @@
               <span class="text-on-surface-variant text-[11px]">${wx.humidity}%</span>` : ""}
             </button>
             <!-- Global Search Action -->
-            <button data-nav="#search:csv" aria-label="Search trip" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-150 subtle-border active:scale-95">
+            <button data-nav="#search" aria-label="Search trip" class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors duration-150 subtle-border active:scale-95">
               <span class="material-symbols-outlined text-base" data-icon="search">search</span>
             </button>
           </div>
@@ -541,7 +533,7 @@
                 <span class="text-[11px] font-label uppercase tracking-wider font-semibold">Checklist</span>
                 <span class="material-symbols-outlined text-sm text-tertiary">checklist</span>
               </div>
-              <div class="font-label text-lg font-bold text-on-surface tracking-tight">${(CFG.preTripChecklist || []).filter((_, i) => loadChecklist()[i]).length}/${(CFG.preTripChecklist || []).length}</div>
+              <div class="font-label text-lg font-bold text-on-surface tracking-tight">${(CFG.preTripChecklist || []).filter(t => loadChecklist()[t]).length}/${(CFG.preTripChecklist || []).length}</div>
               <div class="text-[10px] font-label text-on-surface-variant">items done</div>
             </button>
           </section>
@@ -607,7 +599,7 @@
             <h1 class="font-headline text-sm font-semibold tracking-tight text-on-surface">${esc(DISPLAY_TITLE)}</h1>
           </div>
           <div class="flex items-center gap-1">
-            <button data-nav="#search:csv" aria-label="Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95" type="button">
+            <button data-nav="#search" aria-label="Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95" type="button">
               <span class="material-symbols-outlined text-xl">search</span>
             </button>
           </div>
@@ -622,7 +614,7 @@
               <span>Day Timeline</span>
             </button>
             <button data-nav="#plan:saved" class="flex-1 py-1.5 px-2 text-center text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors">
-              Saved Places (42)
+              Saved Places (${(DATA.masterlist?.items || []).length})
             </button>
             <button data-nav="#plan:saved" class="flex-1 py-1.5 px-2 text-center text-xs font-medium text-on-surface-variant hover:text-on-surface transition-colors">
               Clusters
@@ -655,36 +647,18 @@
      ═══════════════════════════════════════════════════════════════════════ */
   function renderPlanSavedView() {
     const masterItems = DATA.masterlist?.items || [];
-    const filteredExtra = STATE.savedFilter !== "all" || STATE.savedQuery.trim() !== "";
-    let dynamicMasterSection = "";
-    if (filteredExtra) {
-      const q = STATE.savedQuery.trim().toLowerCase();
-      const matched = masterItems.filter(it => {
-        if (STATE.savedFilter === "must" && it.recommendation !== "yes") return false;
-        if (STATE.savedFilter === "food" && it.type !== "food") return false;
-        if (q && !(`${it.name} ${it.cluster} ${it.notes || ""}`).toLowerCase().includes(q)) return false;
-        return true;
-      });
-      dynamicMasterSection = `
-        <section class="space-y-2.5 pb-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-label font-bold text-primary uppercase">Filtered Docket (${matched.length})</span>
-            <button data-action="reset-saved-filter" class="text-xs font-label text-primary hover:underline">Reset Filter</button>
-          </div>
-          ${matched.slice(0, 12).map(it => `
-            <article class="p-3.5 rounded-xl bg-surface-container-low space-y-1.5">
-              <div class="flex items-center justify-between">
-                <h3 class="text-sm font-semibold font-headline text-on-surface">${esc(it.name)}</h3>
-                <span class="text-[11px] font-label text-primary">${esc(it.cost || "Free")}</span>
-              </div>
-              <p class="text-[11px] font-label text-outline">${esc(it.cluster || "")} · ${esc(it.type || "sight")}</p>
-              ${it.notes ? `<p class="text-xs text-on-surface-variant leading-relaxed">${esc(it.notes)}</p>` : ""}
-            </article>
-          `).join("")}
-        </section>
-      `;
-    }
-
+    const q = STATE.savedQuery.trim().toLowerCase();
+    const types = [...new Set(masterItems.map(it => it.type).filter(Boolean))];
+    const matched = masterItems.filter(it => {
+      if (STATE.savedFilter === "must" && it.recommendation !== "yes") return false;
+      if (STATE.savedFilter !== "all" && STATE.savedFilter !== "must" && it.type !== STATE.savedFilter) return false;
+      if (q && !(`${it.name} ${it.cluster} ${it.notes || ""}`).toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const byCluster = {};
+    matched.forEach(it => (byCluster[it.cluster || "Other"] ||= []).push(it));
+    const scheduled = masterItems.filter(it => it.day).length;
+    const pill = (key, label, n) => `<button data-action="set-saved-filter" data-filter="${esc(key)}" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-headline ${STATE.savedFilter === key ? "font-semibold bg-primary-container text-on-primary-container" : "font-medium bg-surface-container text-on-surface"}" type="button"><span>${esc(label)}</span><span class="text-[10px] font-label opacity-80">${n}</span></button>`;
     return `
       <div class="relative w-full max-w-md mx-auto min-h-screen flex flex-col bg-surface shadow-2xl pb-24">
         <!-- Top Navigation Anchor -->
@@ -694,7 +668,7 @@
             <span class="font-headline text-sm font-bold tracking-tight text-on-surface">${esc(DISPLAY_TITLE)}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button data-nav="#search:csv" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95" type="button">
+            <button data-nav="#search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95" type="button">
               <span class="material-symbols-outlined text-xl" data-icon="search">search</span>
             </button>
           </div>
@@ -708,10 +682,10 @@
             </button>
             <button data-nav="#plan:saved" class="flex-1 py-1.5 text-center text-xs font-semibold font-headline bg-surface-container-high text-primary rounded-lg flex items-center justify-center gap-1.5 shadow-sm" type="button">
               <span>Saved Places</span>
-              <span class="text-[10px] font-label font-bold px-1.5 py-0.2 rounded-full bg-primary-container/20 text-primary">42</span>
+              <span class="text-[10px] font-label font-bold px-1.5 py-0.2 rounded-full bg-primary-container/20 text-primary">${masterItems.length}</span>
             </button>
             <button data-action="set-saved-filter" data-filter="all" class="flex-1 py-1.5 text-center text-xs font-medium font-headline text-on-surface-variant hover:text-primary transition-colors duration-150" type="button">
-              Clusters (6)
+              Clusters (${Object.keys(byCluster).length})
             </button>
           </div>
           <!-- Live Search & Filter Bar -->
@@ -719,254 +693,38 @@
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <span class="material-symbols-outlined text-outline text-lg" data-icon="search">search</span>
             </div>
-            <input id="saved-places-search" value="${esc(STATE.savedQuery)}" class="w-full pl-9 pr-8 py-2 bg-surface-container-lowest rounded-xl text-xs text-on-surface placeholder-outline focus:outline-none focus:ring-1 focus:ring-primary font-headline" placeholder="Filter 42 saved spots, hawkers, bars..." type="text"/>
-            <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
-              <span class="text-[10px] font-label text-outline bg-surface-container px-1.5 py-0.5 rounded">⌘K</span>
-            </div>
+            <input id="saved-places-search" value="${esc(STATE.savedQuery)}" class="w-full pl-9 pr-8 py-2 bg-surface-container-lowest rounded-xl text-xs text-on-surface placeholder-outline focus:outline-none focus:ring-1 focus:ring-primary font-headline" placeholder="Filter saved places…" type="text"/>
           </div>
           <!-- Horizontal Filter Pills Carousel -->
           <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2.5 pb-0.5">
-            <button data-action="set-saved-filter" data-filter="all" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-headline font-semibold bg-primary-container text-on-primary-container shadow-sm active:scale-95 transition-transform" type="button">
-              <span>All</span>
-              <span class="text-[10px] font-label font-bold opacity-80">42</span>
-            </button>
-            <button data-action="set-saved-filter" data-filter="must" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-headline font-medium bg-surface-container text-on-surface hover:text-primary transition-colors active:scale-95" type="button">
-              <span class="text-amber-400">★</span>
-              <span>Must Do</span>
-              <span class="text-[10px] font-label text-outline">14</span>
-            </button>
-            <button data-action="set-saved-filter" data-filter="food" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-headline font-medium bg-surface-container text-on-surface hover:text-primary transition-colors active:scale-95" type="button">
-              <span>Hawker &amp; Food</span>
-              <span class="text-[10px] font-label text-outline">18</span>
-            </button>
-            <button data-action="set-saved-filter" data-filter="nightlife" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-headline font-medium bg-surface-container text-on-surface hover:text-primary transition-colors active:scale-95" type="button">
-              <span>Nightlife &amp; Bars</span>
-              <span class="text-[10px] font-label text-outline">6</span>
-            </button>
-            <button data-action="set-saved-filter" data-filter="culture" class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-headline font-medium bg-surface-container text-on-surface hover:text-primary transition-colors active:scale-95" type="button">
-              <span>Architecture &amp; Culture</span>
-              <span class="text-[10px] font-label text-outline">4</span>
-            </button>
+            ${pill("all", "All", masterItems.length)}
+            ${pill("must", "★ Must Do", masterItems.filter(it => it.recommendation === "yes").length)}
+            ${types.map(t => pill(t, t.replace(/-/g, " ").replace(/^\w/, c => c.toUpperCase()), masterItems.filter(it => it.type === t).length)).join("")}
           </div>
         </section>
 
         <!-- Main Content Area: Hyper-Organized Travel Docket -->
         <main class="flex-1 px-4 pt-3 space-y-6">
-          ${dynamicMasterSection}
-          <!-- Status Summary Metric Strip -->
-          <section class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-surface-container-low text-xs font-label">
-            <div class="flex items-center gap-3">
-              <div class="flex items-center gap-1 text-on-surface">
-                <span class="font-bold text-primary">42</span>
-                <span class="text-outline text-[11px]">Saved</span>
-              </div>
-              <span class="text-outline-variant">·</span>
-              <div class="flex items-center gap-1 text-on-surface">
-                <span class="font-bold text-tertiary">18</span>
-                <span class="text-outline text-[11px]">Scheduled</span>
-              </div>
-              <span class="text-outline-variant">·</span>
-              <div class="flex items-center gap-1 text-on-surface">
-                <span class="font-bold text-secondary">24</span>
-                <span class="text-outline text-[11px]">Unassigned</span>
-              </div>
-            </div>
-            <button data-nav="#map" class="flex items-center gap-1 text-[11px] text-primary hover:underline" type="button">
-              <span>Sort by Distance</span>
-              <span class="material-symbols-outlined text-sm" data-icon="expand_more">expand_more</span>
-            </button>
+          <section class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-surface-container-low text-xs font-label">
+            <span><b class="text-primary">${masterItems.length}</b> <span class="text-outline">Saved</span></span>
+            <span><b class="text-tertiary">${scheduled}</b> <span class="text-outline">Scheduled</span></span>
+            <span><b class="text-secondary">${masterItems.length - scheduled}</b> <span class="text-outline">Unassigned</span></span>
+            ${matched.length !== masterItems.length ? `<button data-action="reset-saved-filter" class="ml-auto text-primary">Reset (${matched.length})</button>` : ""}
           </section>
-
-          <!-- CLUSTER 01: CHINATOWN & TELOK AYER -->
-          <section class="space-y-3">
-            <div class="flex items-center justify-between pb-1">
-              <div class="flex flex-col">
-                <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-label font-bold tracking-wider bg-surface-container-high text-primary">CLUSTER 01</span>
-                  <h2 class="text-xs font-bold font-headline tracking-tight text-on-surface">CHINATOWN &amp; TELOK AYER</h2>
-                </div>
-                <div class="flex items-center gap-1.5 mt-1 text-[11px] font-label text-outline">
-                  <span class="material-symbols-outlined text-[13px] text-primary" data-icon="near_me">near_me</span>
-                  <span>8 SPOTS · 450M WALKING RADIUS</span>
-                </div>
-              </div>
-              <a class="inline-flex items-center gap-1 text-[11px] font-medium font-headline text-primary hover:underline" href="${googleMapsUrl("Chinatown Telok Ayer Singapore")}" target="_blank" rel="noopener">
-                <span>View on Maps</span>
-                <span class="material-symbols-outlined text-xs" data-icon="north_east">north_east</span>
-              </a>
-            </div>
-
-            <!-- Spot Item 1: Maxwell Food Centre -->
-            <article class="p-3.5 rounded-xl bg-surface-container-low transition-all duration-150 hover:bg-surface-container space-y-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div class="space-y-1">
-                  <h3 class="text-sm font-semibold font-headline text-on-surface leading-snug">Maxwell Food Centre — Tian Tian Chicken Rice</h3>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label font-bold tracking-tight bg-amber-400/10 text-amber-400">★ MUST DO</span>
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label text-on-surface-variant bg-surface-container">Hawker</span>
-                    <span class="text-[11px] font-label text-outline">★ 4.6 (12k)</span>
-                    <span class="text-outline-variant">·</span>
-                    <span class="text-[11px] font-label font-bold text-on-surface">S$12</span>
+          ${!matched.length ? `<p class="text-xs text-on-surface-variant text-center py-6">No places match.</p>` : ""}
+          ${Object.entries(byCluster).map(([cluster, items]) => `
+            <section class="space-y-2">
+              <h3 class="font-label text-[11px] font-bold uppercase tracking-wider text-primary px-1">${esc(cluster)} · ${items.length}</h3>
+              ${items.map(it => `
+                <a href="${googleMapsUrl(it.name + " " + (it.cluster || ""))}" target="_blank" rel="noopener" class="block p-3 rounded-xl bg-surface-container-low space-y-1">
+                  <div class="flex items-center justify-between gap-2">
+                    <h4 class="text-sm font-semibold font-headline text-on-surface truncate">${it.recommendation === "yes" ? "★ " : ""}${esc(it.name)}</h4>
+                    <span class="text-[11px] font-label text-primary shrink-0">${esc(it.cost || "")}</span>
                   </div>
-                </div>
-                <button aria-label="Bookmark options" class="p-1 text-outline hover:text-on-surface" type="button">
-                  <span class="material-symbols-outlined text-lg" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
-                </button>
-              </div>
-              <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container text-xs font-label">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                <span class="text-on-surface">Scheduled: <strong class="text-primary font-semibold">Day 3 · 13:30</strong></span>
-              </div>
-              <div class="flex items-start gap-1.5 text-xs text-on-surface-variant font-body bg-surface-container-lowest/60 p-2 rounded-lg">
-                <span class="material-symbols-outlined text-sm text-outline flex-shrink-0 mt-0.5" data-icon="lightbulb">lightbulb</span>
-                <p class="leading-relaxed">Covered hawker centre — get medium portion + extra chilli. Cash / PayNow only.</p>
-              </div>
-              <div class="flex items-center justify-end gap-2 pt-1 border-t border-surface-container-high/60">
-                <button data-nav="#map" class="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-label font-semibold text-outline hover:text-on-surface transition-colors" type="button">
-                  <span class="material-symbols-outlined text-xs" data-icon="map">map</span>
-                  <span>View on Map</span>
-                </button>
-                <button data-nav="#wallet" class="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-label font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors" type="button">
-                  <span class="material-symbols-outlined text-xs" data-icon="confirmation_number">confirmation_number</span>
-                  <span>Open Pass</span>
-                </button>
-              </div>
-            </article>
-
-            <!-- Spot Item 2: Jigger & Pony -->
-            <article class="p-3.5 rounded-xl bg-surface-container-low transition-all duration-150 hover:bg-surface-container space-y-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div class="space-y-1">
-                  <h3 class="text-sm font-semibold font-headline text-on-surface leading-snug">Jigger &amp; Pony</h3>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label font-bold tracking-tight bg-amber-400/10 text-amber-400">ASIA'S 50 BEST #3</span>
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label text-on-surface-variant bg-surface-container">Cocktail Bar</span>
-                    <span class="text-outline-variant">·</span>
-                    <span class="text-[11px] font-label font-bold text-on-surface">S$38</span>
-                  </div>
-                </div>
-                <button aria-label="Bookmark options" class="p-1 text-outline hover:text-on-surface" type="button">
-                  <span class="material-symbols-outlined text-lg" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
-                </button>
-              </div>
-              <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-tertiary-container/10 text-xs font-label text-tertiary">
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-sm" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
-                  <span class="font-semibold">Booked: Day 2 · 21:30</span>
-                </div>
-                <span class="text-[10px] font-bold text-tertiary-fixed bg-tertiary/20 px-1.5 py-0.5 rounded">CONFIRMED</span>
-              </div>
-              <div class="flex items-start gap-1.5 text-xs text-on-surface-variant font-body bg-surface-container-lowest/60 p-2 rounded-lg">
-                <span class="material-symbols-outlined text-sm text-outline flex-shrink-0 mt-0.5" data-icon="info">info</span>
-                <p class="leading-relaxed">Reservation <span class="font-label text-primary font-semibold">#JP-882</span> · Dress code: Smart casual.</p>
-              </div>
-            </article>
-
-            <!-- Spot Item 3: Buddha Tooth Relic Temple -->
-            <article class="p-3.5 rounded-xl bg-surface-container-low transition-all duration-150 hover:bg-surface-container space-y-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div class="space-y-1">
-                  <h3 class="text-sm font-semibold font-headline text-on-surface leading-snug">Buddha Tooth Relic Temple</h3>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label text-on-surface-variant bg-surface-container">Culture &amp; Heritage</span>
-                    <span class="text-outline-variant">·</span>
-                    <span class="text-[11px] font-label font-bold text-tertiary">Free</span>
-                    <span class="text-outline-variant">·</span>
-                    <span class="text-[11px] font-label text-outline">Closes 17:00</span>
-                  </div>
-                </div>
-                <button aria-label="Bookmark options" class="p-1 text-outline hover:text-on-surface" type="button">
-                  <span class="material-symbols-outlined text-lg" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
-                </button>
-              </div>
-              <div class="flex items-center justify-between pt-1">
-                <span class="text-[11px] font-label text-outline flex items-center gap-1">
-                  <span class="material-symbols-outlined text-xs" data-icon="calendar_month">calendar_month</span>
-                  <span>Not yet assigned to day</span>
-                </span>
-                <button data-nav="#plan" class="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-label font-semibold text-primary border border-primary/30 hover:bg-primary/10 active:scale-95 transition-all" type="button">
-                  <span class="material-symbols-outlined text-xs" data-icon="add">add</span>
-                  <span>Add to Day</span>
-                </button>
-              </div>
-            </article>
-          </section>
-
-          <!-- CLUSTER 02: KAMPONG GLAM & HAJI LANE -->
-          <section class="space-y-3 pt-2">
-            <div class="flex items-center justify-between pb-1">
-              <div class="flex flex-col">
-                <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-label font-bold tracking-wider bg-surface-container-high text-secondary">CLUSTER 02</span>
-                  <h2 class="text-xs font-bold font-headline tracking-tight text-on-surface">KAMPONG GLAM &amp; HAJI LANE</h2>
-                </div>
-                <div class="flex items-center gap-1.5 mt-1 text-[11px] font-label text-outline">
-                  <span class="material-symbols-outlined text-[13px] text-secondary" data-icon="near_me">near_me</span>
-                  <span>6 SPOTS · 300M RADIUS</span>
-                </div>
-              </div>
-              <a class="inline-flex items-center gap-1 text-[11px] font-medium font-headline text-primary hover:underline" href="${googleMapsUrl("Kampong Glam Haji Lane Singapore")}" target="_blank" rel="noopener">
-                <span>View on Maps</span>
-                <span class="material-symbols-outlined text-xs" data-icon="north_east">north_east</span>
-              </a>
-            </div>
-
-            <!-- Spot Item 1: Blanco Court Prawn Mee -->
-            <article class="p-3.5 rounded-xl bg-surface-container-low transition-all duration-150 hover:bg-surface-container space-y-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div class="space-y-1">
-                  <h3 class="text-sm font-semibold font-headline text-on-surface leading-snug">Blanco Court Prawn Mee</h3>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label text-on-surface-variant bg-surface-container">Breakfast &amp; Brunch</span>
-                    <span class="text-[11px] font-label text-outline">★ 4.5</span>
-                    <span class="text-outline-variant">·</span>
-                    <span class="text-[11px] font-label font-bold text-on-surface">S$10</span>
-                  </div>
-                </div>
-                <button aria-label="Bookmark options" class="p-1 text-outline hover:text-on-surface" type="button">
-                  <span class="material-symbols-outlined text-lg" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
-                </button>
-              </div>
-              <div class="flex items-center justify-between pt-1">
-                <span class="text-[11px] font-label text-outline flex items-center gap-1">
-                  <span class="material-symbols-outlined text-xs" data-icon="access_time">access_time</span>
-                  <span>Open 07:30 – 16:00 (Tue Closed)</span>
-                </span>
-                <button data-nav="#plan" class="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-label font-semibold text-primary border border-primary/30 hover:bg-primary/10 active:scale-95 transition-all" type="button">
-                  <span class="material-symbols-outlined text-xs" data-icon="add">add</span>
-                  <span>Add to Day</span>
-                </button>
-              </div>
-            </article>
-
-            <!-- Spot Item 2: Atlas Bar (Parkview Square) -->
-            <article class="p-3.5 rounded-xl bg-surface-container-low transition-all duration-150 hover:bg-surface-container space-y-2.5">
-              <div class="flex items-start justify-between gap-2">
-                <div class="space-y-1">
-                  <h3 class="text-sm font-semibold font-headline text-on-surface leading-snug">Atlas Bar (Parkview Square)</h3>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label font-bold tracking-tight bg-amber-400/10 text-amber-400">★ MUST DO</span>
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-label text-on-surface-variant bg-surface-container">Art Deco Gin Tower</span>
-                    <span class="text-outline-variant">·</span>
-                    <span class="text-[11px] font-label font-bold text-on-surface">S$45</span>
-                  </div>
-                </div>
-                <button aria-label="Bookmark options" class="p-1 text-outline hover:text-on-surface" type="button">
-                  <span class="material-symbols-outlined text-lg" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
-                </button>
-              </div>
-              <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface-container text-xs font-label">
-                <span class="material-symbols-outlined text-sm text-outline" data-icon="door_front">door_front</span>
-                <span class="text-on-surface">Walk-in lounge after <strong class="text-on-surface font-semibold">15:00</strong></span>
-              </div>
-              <div class="flex items-center justify-end gap-2 pt-1 border-t border-surface-container-high/60">
-                <a href="${googleMapsDirUrl("Atlas Bar Parkview Square Singapore")}" target="_blank" rel="noopener" class="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-label font-semibold text-primary hover:underline transition-colors">
-                  <span class="material-symbols-outlined text-xs" data-icon="directions_walk">directions_walk</span>
-                  <span>Directions · 8 min walk</span>
-                </a>
-              </div>
-            </article>
-          </section>
+                  <p class="text-[11px] font-label text-outline">${esc(it.type || "")}${it.day ? ` · ${esc(it.day)}` : ""}</p>
+                  ${it.notes ? `<p class="text-xs text-on-surface-variant leading-relaxed">${esc(it.notes)}</p>` : ""}
+                </a>`).join("")}
+            </section>`).join("")}
         </main>
         ${renderBottomNav("plan")}
       </div>
@@ -976,334 +734,101 @@
   /* ═══════════════════════════════════════════════════════════════════════
      SCREEN 4: MAP — DARK CARTOGRAPHY & WEATHER RADAR (stitch_04_map_google_weather)
      ═══════════════════════════════════════════════════════════════════════ */
+  function mapPois() {
+    const pois = DATA["map-config"]?.pois || [];
+    if (STATE.mapDay === "all") return pois;
+    return pois.filter(p => (p.days || []).includes(STATE.mapDay))
+      .sort((a, b) => String(a.time || "").localeCompare(String(b.time || "")));
+  }
+
   function renderMapView() {
+    const days = DATA.itinerary?.days || [];
+    if (!STATE.mapDay) STATE.mapDay = activeDayId() || "all";
+    const pois = mapPois();
+    const pills = [["all", "All Days"], ...days.map((d, i) => [d.day, `D${i + 1} · ${d.city}`])];
     return `
-      <div class="relative w-full max-w-md mx-auto min-h-screen h-[884px] flex flex-col justify-between overflow-hidden bg-surface-container-lowest shadow-2xl">
-        <!-- 1. FULL-BLEED DARK CARTOGRAPHY CANVAS -->
-        <div class="absolute inset-0 z-0 overflow-hidden select-none bg-[#090d16]" data-location="Singapore">
-          <div id="live-maplibre-container" class="${STATE.mapLiveCanvas ? "block" : "hidden"} absolute inset-0 z-10"></div>
-          <svg class="${STATE.mapLiveCanvas ? "opacity-0 pointer-events-none" : ""} absolute inset-0 w-full h-full object-cover" fill="none" viewBox="0 0 420 900" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="routeGlow" x1="0%" x2="100%" y1="0%" y2="100%">
-                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"></stop>
-                <stop offset="60%" stop-color="#7bd0ff" stop-opacity="1"></stop>
-                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.9"></stop>
-              </linearGradient>
-              <radialGradient cx="50%" cy="50%" id="markerAura" r="50%">
-                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.5"></stop>
-                <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.15"></stop>
-                <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop>
-              </radialGradient>
-              <radialGradient cx="45%" cy="50%" id="weatherRadar" r="55%">
-                <stop offset="0%" stop-color="#22c990" stop-opacity="0.28"></stop>
-                <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.18"></stop>
-                <stop offset="80%" stop-color="#2f3aa3" stop-opacity="0.08"></stop>
-                <stop offset="100%" stop-color="#090d16" stop-opacity="0"></stop>
-              </radialGradient>
-            </defs>
-            <rect fill="#0c111d" height="900" width="420"></rect>
-            <path d="M0,0 L210,0 L230,160 L140,290 L0,320 Z" fill="#111827"></path>
-            <path d="M230,0 L420,0 L420,380 L360,420 L270,360 L240,210 Z" fill="#0f172a"></path>
-            <path d="M0,330 L130,310 L190,440 L90,560 L0,520 Z" fill="#111827"></path>
-            <path d="M0,530 L110,570 L130,750 L0,780 Z" fill="#131b2e"></path>
-            <path d="M255,475 C275,440 330,430 380,455 C420,480 420,580 370,610 C320,630 265,585 255,530 Z" fill="#064e3b" fill-opacity="0.45" stroke="#065f46" stroke-dasharray="3 3" stroke-width="1.2"></path>
-            <path d="M310,485 C335,465 375,480 385,510 C390,545 355,570 330,560 C305,550 295,510 310,485 Z" fill="#047857" fill-opacity="0.25"></path>
-            <path d="M120,230 C135,210 170,215 185,240 C190,265 170,295 145,290 C125,285 110,255 120,230 Z" fill="#064e3b" fill-opacity="0.38" stroke="#065f46" stroke-width="0.8"></path>
-            <path d="M30,160 Q80,210 145,245 T215,360" fill="none" stroke="#090d16" stroke-linecap="round" stroke-width="14"></path>
-            <path d="M30,160 Q80,210 145,245 T215,360" fill="none" opacity="0.6" stroke="#1e293b" stroke-width="3"></path>
-            <path d="M205,350 C235,340 265,360 275,395 C285,430 275,475 240,490 C215,500 185,480 180,440 C175,400 185,360 205,350 Z" fill="#080e1a" stroke="#1e293b" stroke-width="1.5"></path>
-            <path d="M220,380 C245,370 265,390 260,420 C255,450 230,470 205,455 C190,445 190,410 205,390 Z" fill="#060a12"></path>
-            <path d="M255,480 C280,510 310,580 330,680 C340,730 350,850 360,900 L420,900 L420,640 L380,455 Z" fill="#070c17" stroke="#1e293b" stroke-width="1"></path>
-            <path d="M0,690 Q180,680 310,650 T420,590" fill="none" opacity="0.75" stroke="#334155" stroke-width="3.5"></path>
-            <path d="M0,690 Q180,680 310,650 T420,590" fill="none" opacity="0.9" stroke="#475569" stroke-width="1.2"></path>
-            <path d="M120,100 L210,360 L245,465 L275,540 L330,650" fill="none" stroke="#1e293b" stroke-width="2.5"></path>
-            <path d="M200,320 L320,340 L360,440" fill="none" stroke="#1e293b" stroke-width="2"></path>
-            <path d="M90,420 L240,490 L380,520" fill="none" stroke="#1e293b" stroke-width="1.8"></path>
-            <path d="M40,320 L160,335 L205,435 L160,560" fill="none" stroke="#1e293b" stroke-width="1.8"></path>
-            <path d="M140,290 L180,330 M160,270 L200,310 M70,390 L140,400 M110,440 L180,450 M140,480 L200,490" fill="none" stroke="#182234" stroke-width="1.2"></path>
-            <path d="M280,390 L350,405 M295,430 L360,445 M265,520 L320,535" fill="none" stroke="#182234" stroke-width="1.2"></path>
-            ${STATE.mapRadarOn ? `
-              <circle class="animate-weather-mist pointer-events-none" cx="280" cy="460" fill="url(#weatherRadar)" r="140"></circle>
-              <path class="animate-weather-mist" d="M210,400 Q260,380 310,420 T360,490" fill="none" opacity="0.25" stroke="#22c990" stroke-dasharray="12 8" stroke-width="3"></path>
-            ` : ""}
-            ${STATE.mapRouteOn ? `
-              <g id="route-polyline">
-                <path d="M85,340 Q125,380 168,435 T224,465 T242,422 T296,508" fill="none" opacity="0.28" stroke="#38bdf8" stroke-linecap="round" stroke-linejoin="round" stroke-width="8"></path>
-                <path d="M85,340 Q125,380 168,435 T224,465 T242,422 T296,508" fill="none" stroke="url(#routeGlow)" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"></path>
-                <path class="animate-dash" d="M85,340 Q125,380 168,435 T224,465 T242,422 T296,508" fill="none" opacity="0.8" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path>
-              </g>
-            ` : ""}
-            <circle cx="296" cy="508" fill="url(#markerAura)" r="42"></circle>
-            <circle class="animate-pulse-ring origin-center" cx="296" cy="508" fill="none" r="28" stroke="#38bdf8" stroke-width="1.5" style="transform-origin: 296px 508px;"></circle>
-          </svg>
-
-          <!-- HTML INTERACTIVE MAP MARKERS / PINS OVERLAY -->
-          <div class="${STATE.mapLiveCanvas ? "hidden" : ""}">
-            <!-- PIN 1: Tiong Bahru Bakery -->
-            <div data-action="select-map-stop" data-stop="0" class="absolute top-[340px] left-[85px] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center cursor-pointer group">
-              <div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline/30 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <span class="font-label text-xs font-bold text-on-surface">1</span>
-              </div>
-              <span class="mt-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-[10px] font-label text-on-surface-variant font-medium tracking-tight backdrop-blur-sm border border-outline-variant/30">
-                Tiong Bahru
-              </span>
-            </div>
-            <!-- PIN 3: Lau Pa Sat Satay Street -->
-            <div data-action="select-map-stop" data-stop="2" class="absolute top-[435px] left-[168px] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center cursor-pointer group">
-              <div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline/30 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <span class="font-label text-xs font-bold text-on-surface">3</span>
-              </div>
-              <span class="mt-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-[10px] font-label text-on-surface-variant font-medium tracking-tight backdrop-blur-sm border border-outline-variant/30">
-                Lau Pa Sat
-              </span>
-            </div>
-            <!-- PIN 5: Marina Bay Sands SkyPark -->
-            <div data-action="select-map-stop" data-stop="4" class="absolute top-[465px] left-[224px] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center cursor-pointer group">
-              <div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline/30 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <span class="font-label text-xs font-bold text-on-surface">5</span>
-              </div>
-              <span class="mt-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-[10px] font-label text-on-surface-variant font-medium tracking-tight backdrop-blur-sm border border-outline-variant/30">
-                MBS SkyPark
-              </span>
-            </div>
-            <!-- PIN 4: ArtScience Museum -->
-            <div data-action="select-map-stop" data-stop="3" class="absolute top-[422px] left-[242px] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center cursor-pointer group">
-              <div class="w-7 h-7 rounded-full bg-surface-container-high border border-outline/30 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <span class="font-label text-xs font-bold text-on-surface">4</span>
-              </div>
-              <span class="mt-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/80 text-[10px] font-label text-on-surface-variant font-medium tracking-tight backdrop-blur-sm border border-outline-variant/30">
-                ArtScience
-              </span>
-            </div>
-            <!-- PIN 2: Gardens by the Bay (SELECTED ACTIVE PIN) -->
-            <div data-action="select-map-stop" data-stop="1" class="absolute top-[508px] left-[296px] -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center cursor-pointer">
-              <div class="mb-2 -translate-y-1 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low/95 backdrop-blur-md border border-primary-container/60 shadow-xl shadow-primary-container/10 whitespace-nowrap">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-ping"></span>
-                <span class="font-label text-[11px] font-semibold text-primary">10:30 AM · Booked</span>
-                <span class="text-on-surface-variant text-[11px]">·</span>
-                <span class="font-label text-[11px] text-amber-300 flex items-center gap-0.5 font-medium">★ 4.8</span>
-              </div>
-              <div class="relative flex items-center justify-center">
-                <div class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-lg shadow-primary-container/40 ring-4 ring-primary-container/25">
-                  <span class="font-label text-sm font-bold">2</span>
-                </div>
-                <div class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-primary-container"></div>
-              </div>
-              <span class="mt-2.5 px-2 py-0.5 rounded-md bg-surface-container-high/90 text-[11px] font-headline font-bold text-on-surface tracking-tight shadow-md border border-primary-container/30">
-                Gardens by the Bay
-              </span>
-            </div>
-            <!-- Live GPS User Blue Halo Dot -->
-            <div class="absolute top-[480px] left-[195px] -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
-              <div class="relative flex items-center justify-center">
-                <div class="w-4 h-4 rounded-full bg-primary ring-2 ring-white shadow-md"></div>
-                <div class="absolute w-8 h-8 rounded-full bg-primary/30 animate-ping"></div>
-              </div>
-            </div>
+      <div class="relative w-full max-w-md mx-auto min-h-screen bg-surface-container-lowest pb-28">
+        <header class="sticky top-0 z-30 px-4 py-3 bg-surface-container-low/90 backdrop-blur-xl space-y-2">
+          <div class="flex items-center justify-between">
+            <h1 class="font-headline text-sm font-bold text-on-surface">${esc(DISPLAY_TITLE)} · Map</h1>
+            <button data-nav="#search" aria-label="Search places" class="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant"><span class="material-symbols-outlined text-[18px]">search</span></button>
           </div>
-        </div>
-
-        <!-- 2. TOP FLOATING GLASS HUD OVERLAY -->
-        <header class="relative z-30 w-full pt-2 pb-3 px-4 bg-gradient-to-b from-surface via-surface/90 to-transparent backdrop-blur-xl">
-          <div class="flex items-center justify-between w-full py-1.5">
-            <div class="flex items-center gap-2.5">
-              <button data-nav="#today" aria-label="Flight overview" class="w-8 h-8 rounded-xl bg-surface-container-low/80 flex items-center justify-center text-primary border border-outline-variant/30 active:scale-95 transition-transform">
-                <span class="material-symbols-outlined text-[19px]">flight_takeoff</span>
-              </button>
-              <div>
-                <h1 class="font-headline text-sm font-bold tracking-tight text-on-surface flex items-center gap-1.5">
-                  ${esc(DISPLAY_TITLE)}
-                </h1>
-                <div class="flex items-center gap-1.5 text-[11px] font-label text-on-surface-variant">
-                  <span class="inline-block w-1.5 h-1.5 rounded-full bg-tertiary-container animate-pulse"></span>
-                  <span>GPS Live · Marina Bay</span>
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-low/90 border border-outline-variant/40 text-[11px] font-label text-on-surface shadow-sm">
-                <span class="material-symbols-outlined text-amber-300 text-[14px]">thunderstorm</span>
-                <span>29°C · Rain 15:30</span>
-              </div>
-              <button data-nav="#search:csv" aria-label="Search places" class="w-8 h-8 rounded-xl bg-surface-container-low/80 flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-95 transition-all border border-outline-variant/30">
-                <span class="material-symbols-outlined text-[18px]">search</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Row 1: Horizontal Day Filter Scrollable Pill List -->
-          <div class="mt-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            ${["All Days", "D1 · SIN", "D2 · SIN", "D3 · Today", "D4 · SIN", "D5 · KUL"].map(label => {
-              const code = label.split(" ")[0];
-              const isAct = (STATE.mapDay === "D3" && code === "D3") || STATE.mapDay === code;
-              if (isAct) {
-                return `
-                  <button data-action="set-map-day" data-day="${code}" class="px-3 py-1 rounded-lg text-xs font-label font-bold text-on-primary-container bg-primary-container shadow-md shadow-primary-container/25 whitespace-nowrap active:scale-95 transition-all flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-on-primary-container"></span>
-                    <span>${label}</span>
-                  </button>
-                `;
-              }
-              return `
-                <button data-action="set-map-day" data-day="${code}" class="px-2.5 py-1 rounded-lg text-xs font-label font-medium text-on-surface-variant bg-surface-container-low/70 border border-outline-variant/20 whitespace-nowrap active:scale-95 transition-all hover:text-on-surface">
-                  ${label}
-                </button>
-              `;
-            }).join("")}
-          </div>
-
-          <!-- Row 2: Filter and Layer Quick Toggles + Export Route Button -->
-          <div class="mt-2 flex items-center justify-between gap-1.5 text-xs font-label">
-            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <button data-action="toggle-map-route" class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container-high/80 text-primary border border-primary/30 whitespace-nowrap active:scale-95 transition-all">
-                <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                <span class="font-semibold text-[11px]">Route Line ${STATE.mapRouteOn ? "ON" : "OFF"}</span>
-              </button>
-              <button data-action="toggle-live-map" class="px-2 py-0.5 rounded-md bg-surface-container-low/80 text-on-surface-variant hover:text-on-surface border border-outline-variant/20 whitespace-nowrap text-[11px]">
-                Booked Only
-              </button>
-              <button data-nav="#plan:saved" class="px-2 py-0.5 rounded-md bg-surface-container-low/80 text-on-surface-variant hover:text-on-surface border border-outline-variant/20 whitespace-nowrap text-[11px]">
-                Hawkers
-              </button>
-              <button data-action="toggle-map-radar" class="flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container-low/80 text-tertiary-fixed-dim border border-tertiary-container/30 whitespace-nowrap text-[11px]">
-                <span class="material-symbols-outlined text-[12px]">radar</span>
-                <span>Radar</span>
-              </button>
-            </div>
-            <a href="${googleMapsDirUrl("Gardens by the Bay Singapore", 1.2816, 103.8636)}" target="_blank" rel="noopener" class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-container-high text-primary hover:text-on-surface font-semibold text-[11px] border border-outline-variant/30 active:scale-95 transition-all">
-              <span>Export</span>
-              <span class="material-symbols-outlined text-[13px]">arrow_outward</span>
-            </a>
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            ${pills.map(([code, label]) => `<button data-action="set-map-day" data-day="${esc(code)}" class="px-2.5 py-1 rounded-lg text-xs font-label whitespace-nowrap ${STATE.mapDay === code ? "font-bold bg-primary-container text-on-primary-container" : "text-on-surface-variant bg-surface-container-low border border-outline-variant/20"}">${esc(label)}</button>`).join("")}
           </div>
         </header>
-
-        <!-- FLOATING MAP CONTROLS -->
-        <div class="absolute right-4 top-36 z-20 flex flex-col gap-2 pointer-events-auto">
-          <button data-action="toggle-live-map" aria-label="Layers switcher" class="w-10 h-10 rounded-xl bg-surface-container-low/90 backdrop-blur-md text-on-surface flex items-center justify-center border border-outline-variant/40 shadow-lg active:scale-90 transition-all hover:text-primary">
-            <span class="material-symbols-outlined text-[20px]">layers</span>
-          </button>
-          <button data-action="toggle-live-map" aria-label="Toggle 3D View" class="w-10 h-10 rounded-xl bg-surface-container-low/90 backdrop-blur-md text-on-surface flex items-center justify-center border border-outline-variant/40 shadow-lg font-label font-bold text-xs active:scale-90 transition-all hover:text-primary">
-            3D
-          </button>
-          <button data-action="recenter-map" aria-label="Recenter GPS" class="w-10 h-10 rounded-xl bg-surface-container-low/90 backdrop-blur-md text-primary flex items-center justify-center border border-outline-variant/40 shadow-lg active:scale-90 transition-all">
-            <span class="material-symbols-outlined text-[20px]">my_location</span>
-          </button>
-          <div class="flex flex-col rounded-xl bg-surface-container-low/90 backdrop-blur-md border border-outline-variant/40 shadow-lg overflow-hidden">
-            <button data-action="map-zoom-in" aria-label="Zoom in" class="w-10 h-9 flex items-center justify-center text-on-surface hover:text-primary active:bg-surface-container transition-colors">
-              <span class="material-symbols-outlined text-[18px]">add</span>
-            </button>
-            <div class="w-full h-px bg-outline-variant/30"></div>
-            <button data-action="map-zoom-out" aria-label="Zoom out" class="w-10 h-9 flex items-center justify-center text-on-surface hover:text-primary active:bg-surface-container transition-colors">
-              <span class="material-symbols-outlined text-[18px]">remove</span>
-            </button>
+        <div class="relative mx-4 mt-2 rounded-2xl overflow-hidden border border-outline-variant/30 bg-surface-container" style="height:52vh">
+          <div id="live-maplibre-container" class="absolute inset-0"></div>
+          <p id="map-fallback" class="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-on-surface-variant p-6 text-center">Loading map… (needs network — stops listed below work offline)</p>
+          <div class="absolute right-2 top-2 z-10 flex flex-col gap-1.5">
+            <button data-action="map-zoom-in" aria-label="Zoom in" class="w-8 h-8 rounded-lg bg-surface-container-high/90 text-on-surface">+</button>
+            <button data-action="map-zoom-out" aria-label="Zoom out" class="w-8 h-8 rounded-lg bg-surface-container-high/90 text-on-surface">−</button>
+            <button data-action="recenter-map" aria-label="Recenter" class="w-8 h-8 rounded-lg bg-surface-container-high/90 text-on-surface"><span class="material-symbols-outlined text-sm">my_location</span></button>
           </div>
         </div>
-
-        <!-- 3. BOTTOM SYNCHRONIZED SNAP-SCROLL CAROUSEL -->
-        <div class="relative z-30 w-full mb-16 px-4">
-          <div class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-1">
-            <!-- ACTIVE CARD: Stop #2 of 5 - Gardens by the Bay -->
-            <div class="snap-center shrink-0 w-[88%] rounded-2xl bg-surface-container-low/95 backdrop-blur-xl border border-outline-variant/40 p-4 shadow-2xl flex flex-col justify-between relative overflow-hidden">
-              <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-80"></div>
-              <div>
-                <div class="flex items-center justify-between gap-2 text-xs">
-                  <span class="font-label font-bold text-primary tracking-wide text-[11px]">
-                    STOP 02 OF 05 · 10:30 AM
-                  </span>
-                  <div class="flex items-center gap-1.5">
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-label font-semibold text-[10px] tracking-tight border border-emerald-500/20">
-                      ${IS_PUBLIC_STRIPPED ? "BOOKED" : "BOOKED · #GBB884"}
-                    </span>
-                    <span class="font-label text-[11px] text-amber-300 font-medium">★ 4.8</span>
-                  </div>
-                </div>
-                <div class="mt-2">
-                  <h2 class="font-headline text-base font-bold text-on-surface tracking-tight leading-snug">
-                    Cloud Forest &amp; Flower Dome
-                  </h2>
-                  <p class="font-body text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
-                    <span class="material-symbols-outlined text-[14px] text-primary">location_on</span>
-                    <span>Gardens by the Bay · Marina Bay Waterfront</span>
-                  </p>
-                </div>
-                <div class="mt-2.5 p-2 rounded-xl bg-surface-container/60 border border-outline-variant/30 flex items-center gap-2 text-xs font-label text-on-surface-variant">
-                  <span class="material-symbols-outlined text-[16px] text-secondary">directions_subway</span>
-                  <span class="truncate">12 mins away · DT16 Bayfront Exit B · Open until 21:00</span>
-                </div>
-              </div>
-              <div class="mt-3.5 grid grid-cols-2 gap-2">
-                <a href="${googleMapsDirUrl("Gardens by the Bay Singapore", 1.2816, 103.8636)}" target="_blank" rel="noopener" class="w-full py-2 px-2.5 rounded-xl bg-primary-container text-on-primary-container font-headline font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-primary-container/20 active:scale-95 transition-transform">
-                  <span class="material-symbols-outlined text-[16px]">navigation</span>
-                  <span>Directions</span>
-                </a>
-                <button data-nav="#wallet" class="w-full py-2 px-2.5 rounded-xl bg-surface-container-high/90 text-on-surface hover:text-primary font-headline font-semibold text-xs border border-outline-variant/40 flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
-                  <span class="material-symbols-outlined text-[16px]">confirmation_number</span>
-                  <span>Ticket Pass</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- PEEK PREVIEW CARD: Stop #3 of 5 - Lau Pa Sat Satay Street -->
-            <div class="snap-center shrink-0 w-[84%] rounded-2xl bg-surface-container-low/75 backdrop-blur-md border border-outline-variant/30 p-4 shadow-xl flex flex-col justify-between opacity-80 hover:opacity-100 transition-opacity">
-              <div>
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-label font-bold text-on-surface-variant tracking-wide text-[11px]">
-                    STOP 03 · 13:15 PM
-                  </span>
-                  <span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-label font-medium text-[10px] border border-amber-500/20">
-                    MUST DO
-                  </span>
-                </div>
-                <div class="mt-2">
-                  <h2 class="font-headline text-base font-bold text-on-surface tracking-tight">
-                    Lau Pa Sat Satay Street
-                  </h2>
-                  <p class="font-body text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
-                    <span class="material-symbols-outlined text-[14px]">restaurant</span>
-                    <span>Raffles Quay · Stalls 7 &amp; 8 Recommended</span>
-                  </p>
-                </div>
-                <div class="mt-2.5 p-2 rounded-xl bg-surface-container/40 border border-outline-variant/20 flex items-center gap-2 text-xs font-label text-on-surface-variant">
-                  <span class="material-symbols-outlined text-[16px]">directions_walk</span>
-                  <span>8 min walk from Marina Bay Link Mall</span>
-                </div>
-              </div>
-              <div class="mt-3.5">
-                <button data-nav="#plan" class="w-full py-2 px-2.5 rounded-xl bg-surface-container-high/60 text-on-surface font-headline font-medium text-xs border border-outline-variant/30 flex items-center justify-center gap-1.5">
-                  <span>View Details</span>
-                  <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <section class="px-4 mt-3 space-y-1.5">
+          <h2 class="font-label text-[11px] font-bold uppercase tracking-wider text-primary px-1">${pois.length} stops</h2>
+          ${pois.map((p, i) => `
+            <a href="${googleMapsUrl(p.name, p.lat, p.lon)}" target="_blank" rel="noopener" class="flex items-center gap-3 p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/20">
+              <span class="w-6 h-6 shrink-0 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold flex items-center justify-center">${i + 1}</span>
+              <span class="min-w-0 flex-1">
+                <span class="block text-xs font-headline font-semibold text-on-surface truncate">${esc(p.name)}</span>
+                <span class="block text-[10px] font-label text-on-surface-variant truncate">${esc([p.time, p.cluster, p.cost].filter(Boolean).join(" · "))}</span>
+              </span>
+              <span class="material-symbols-outlined text-sm text-primary">north_east</span>
+            </a>`).join("")}
+        </section>
         ${renderBottomNav("map")}
       </div>
     `;
   }
 
   function initLiveMapLibreIfActive() {
-    if (!STATE.mapLiveCanvas || typeof maplibregl === "undefined") return;
     const container = document.getElementById("live-maplibre-container");
+    const fallback = document.getElementById("map-fallback");
     if (!container) return;
-    const mc = DATA["map-config"] || { center: [1.2868, 103.8545], zoom: 13, pois: [] };
+    if (typeof maplibregl === "undefined") {
+      if (fallback) fallback.textContent = "Map library unavailable offline — use the stop list below.";
+      return;
+    }
+    const mc = DATA["map-config"] || { center: [1.2868, 103.8545], zoom: 13 };
+    const pois = mapPois();
     try {
       mapInstance = new maplibregl.Map({
         container,
         style: "https://tiles.openfreemap.org/styles/dark",
         center: [mc.center[1], mc.center[0]],
-        zoom: mc.zoom || 13
+        zoom: mc.zoom || 13,
+        attributionControl: { compact: true }
       });
-      (mc.pois || []).forEach((poi, idx) => {
+      const map = mapInstance;
+      map.on("error", () => { if (fallback && !map.loaded()) fallback.textContent = "Map tiles unavailable — use the stop list below."; });
+      pois.forEach((poi, idx) => {
         const el = document.createElement("div");
         el.className = "w-7 h-7 rounded-full bg-primary-container text-on-primary-container font-label text-xs font-bold flex items-center justify-center shadow-lg border border-white/30";
         el.textContent = String(idx + 1);
         new maplibregl.Marker({ element: el })
           .setLngLat([poi.lon, poi.lat])
           .setPopup(new maplibregl.Popup({ offset: 16 }).setHTML(`<strong>${esc(poi.name)}</strong><br/>${esc(poi.cluster || "")}`))
-          .addTo(mapInstance);
+          .addTo(map);
       });
-    } catch (_) {}
+      if (pois.length > 1) {
+        const b = new maplibregl.LngLatBounds();
+        pois.forEach(p => b.extend([p.lon, p.lat]));
+        map.fitBounds(b, { padding: 40, maxZoom: 15, duration: 0 });
+      }
+      // 'load' is unreliable here (see AGENTS.md) → add route on first styledata
+      map.on("styledata", () => {
+        if (fallback) fallback.hidden = true;
+        if (STATE.mapDay === "all" || pois.length < 2 || map.getSource("day-route")) return;
+        try {
+          map.addSource("day-route", { type: "geojson", data: { type: "Feature", geometry: { type: "LineString", coordinates: pois.map(p => [p.lon, p.lat]) } } });
+          map.addLayer({ id: "day-route", type: "line", source: "day-route", paint: { "line-color": "#7dd3fc", "line-width": 3, "line-dasharray": [2, 1.5] } });
+        } catch (_) {}
+      });
+    } catch (_) {
+      if (fallback) fallback.textContent = "Map failed to load — use the stop list below.";
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -1392,7 +917,7 @@
               <span class="text-on-surface-variant text-[11px] font-medium tracking-tight">1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}</span>
             </div>
             <!-- Trailing Search Button -->
-            <button data-nav="#search:csv" aria-label="Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary active:scale-95 transition-all">
+            <button data-nav="#search" aria-label="Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary active:scale-95 transition-all">
               <span class="material-symbols-outlined text-xl" data-icon="search">search</span>
             </button>
           </div>
@@ -1516,7 +1041,7 @@
               <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
               1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}
             </div>
-            <button data-nav="#search:csv" aria-label="Search" class="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-150" type="button">
+            <button data-nav="#search" aria-label="Search" class="p-1 rounded-lg text-on-surface-variant hover:text-primary transition-colors active:scale-95 duration-150" type="button">
               <span class="material-symbols-outlined text-lg" data-icon="search">search</span>
             </button>
           </div>
@@ -1623,97 +1148,12 @@
   /* ═══════════════════════════════════════════════════════════════════════
      SCREEN 7: GLOBAL SEARCH & CSV IMPORT DRAWER (stitch_07_search_and_csv_modal)
      ═══════════════════════════════════════════════════════════════════════ */
-  function renderSearchAndCsvView() {
+  function renderCsvDrawer() {
     const csvState = loadCsvPreview();
     const checkedRows = csvState.rows.filter(r => r.checked && !r.duplicate);
     const totalCommitInr = checkedRows.reduce((acc, r) => acc + (Number(r.homeAmount) || 0), 0);
     const dupCount = csvState.rows.filter(r => r.duplicate).length;
-
     return `
-      <main class="max-w-md mx-auto min-h-screen relative bg-surface-container-lowest overflow-hidden flex flex-col pb-24 shadow-2xl">
-        <!-- Ambient Subtle Radial Glow -->
-        <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/10 rounded-full blur-3xl opacity-70"></div>
-
-        <!-- 1. TopAppBar -->
-        <header class="sticky top-0 z-40 flex items-center justify-between w-full px-4 py-3 max-w-md mx-auto bg-surface-container-low/80 dark:bg-surface-container-low/80 backdrop-blur-xl">
-          <div class="flex items-center gap-2.5">
-            <span class="material-symbols-outlined text-primary text-xl" data-icon="flight_takeoff">flight_takeoff</span>
-            <h1 class="font-headline text-sm font-bold tracking-tight text-on-surface">${esc(DISPLAY_TITLE)}</h1>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30 text-[11px] font-label font-medium text-primary tracking-tight">
-              <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
-              1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}
-            </div>
-            <button data-nav="#wallet:spend" aria-label="Dismiss" class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform">
-              <span class="material-symbols-outlined text-lg" data-icon="close">close</span>
-            </button>
-          </div>
-        </header>
-
-        <!-- Main Content Canvas (Global Command Search & Contextual Matches) -->
-        <section class="flex-1 px-4 pt-3 pb-6 flex flex-col gap-4">
-          <div class="relative flex flex-col gap-2.5">
-            <div class="relative flex items-center w-full rounded-2xl bg-surface-container/90 border border-primary/40 shadow-lg shadow-primary/5 px-3 py-2.5 backdrop-blur-md">
-              <span class="material-symbols-outlined text-primary text-xl mr-2.5" data-icon="search">search</span>
-              <input id="global-search-input" class="w-full bg-transparent border-0 p-0 text-sm font-medium text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" placeholder="Search 'satay' across 11 days, 8 bookings... ⌘K" type="text" value="${esc(STATE.searchQuery)}"/>
-              <button data-action="clear-search" aria-label="Clear" class="flex items-center justify-center w-5 h-5 rounded-full bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors text-xs mr-2">
-                ✕
-              </button>
-              <kbd class="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-label text-outline bg-surface-container-highest rounded border border-outline-variant/40">
-                ⌘K
-              </kbd>
-            </div>
-            <!-- Filter Chips Row -->
-            <div class="flex items-center gap-1.5 overflow-x-auto custom-scroll py-0.5">
-              <button class="px-3 py-1 rounded-xl bg-primary-container text-on-primary-container font-label text-xs font-semibold whitespace-nowrap active:scale-95 transition-all">
-                All (2)
-              </button>
-              <button class="px-3 py-1 rounded-xl bg-surface-container-high/80 text-on-surface-variant hover:text-on-surface border border-outline-variant/30 font-label text-xs font-medium whitespace-nowrap active:scale-95 transition-all">
-                Itinerary (1)
-              </button>
-              <button class="px-3 py-1 rounded-xl bg-surface-container-high/80 text-on-surface-variant hover:text-on-surface border border-outline-variant/30 font-label text-xs font-medium whitespace-nowrap active:scale-95 transition-all">
-                Bookings (1)
-              </button>
-              <button class="px-3 py-1 rounded-xl bg-surface-container-high/80 text-outline border border-outline-variant/20 font-label text-xs font-medium whitespace-nowrap opacity-60">
-                Saved Places (0)
-              </button>
-            </div>
-          </div>
-
-          <!-- Instant Search Results -->
-          <div class="flex flex-col gap-3 opacity-60 transition-opacity select-none">
-            <div class="flex items-center justify-between text-xs font-label text-outline tracking-wider">
-              <span>INSTANT MATCHES (2)</span>
-              <span class="text-[11px]">FOUND IN 12ms</span>
-            </div>
-            <article class="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <span class="font-label text-[10px] font-semibold text-primary tracking-wide">ITINERARY · DAY 3 · 13:15</span>
-                <span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-label text-[10px] font-bold">MUST DO</span>
-              </div>
-              <h2 class="font-headline text-sm font-semibold text-on-surface">Lau Pa Sat Satay Street (Boon Tat St)</h2>
-              <div class="flex items-center justify-between text-xs text-on-surface-variant pt-1 border-t border-outline-variant/20">
-                <span class="font-label tabular-nums">Est. S$18.00 · Outdoor dining</span>
-                <span class="text-primary font-medium text-[11px] flex items-center gap-1">Jump to Timeline →</span>
-              </div>
-            </article>
-            <article class="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-2">
-              <div class="flex items-center justify-between">
-                <span class="font-label text-[10px] font-semibold text-secondary tracking-wide">BOOKING PASS · NOV 16</span>
-                <span class="px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary font-label text-[10px] font-bold">CONFIRMED</span>
-              </div>
-              <h2 class="font-headline text-sm font-semibold text-on-surface">Gardens by the Bay Voucher</h2>
-              <div class="flex items-center justify-between text-xs text-on-surface-variant pt-1 border-t border-outline-variant/20">
-                <span class="font-label tabular-nums text-outline">#GBB-8842 · Timed entry: 10:30 AM</span>
-                <span class="text-secondary font-medium text-[11px] flex items-center gap-0.5">
-                  <span class="material-symbols-outlined text-sm" data-icon="qr_code">qr_code</span> Show QR
-                </span>
-              </div>
-            </article>
-          </div>
-        </section>
-
         <!-- Semi-transparent Scrim / Dimmer Overlay -->
         <div class="fixed inset-0 bg-surface-container-lowest/60 backdrop-blur-[2px] z-40 max-w-md mx-auto pointer-events-none"></div>
 
@@ -1740,7 +1180,7 @@
                 <span class="material-symbols-outlined text-xl" data-icon="description">description</span>
               </div>
               <div class="min-w-0">
-                <div class="font-label text-xs font-semibold text-on-surface truncate">${esc(csvState.filename)}</div>
+                <div class="font-label text-xs font-semibold text-on-surface truncate">${esc(csvState.filename || "No file selected")}</div>
                 <div class="font-label text-[10px] text-primary flex items-center gap-1">
                   <span>${csvState.rows.length} rows parsed</span>
                   <span class="text-outline">·</span>
@@ -1749,10 +1189,11 @@
               </div>
             </div>
             <button data-action="trigger-csv-upload" class="shrink-0 text-xs font-label font-medium text-primary hover:underline px-2 py-1 rounded bg-surface-container/60 border border-outline-variant/30">
-              Change file
+              ${csvState.filename ? "Change file" : "Choose CSV"}
             </button>
           </div>
 
+          ${csvState.error ? `<p class="p-2.5 rounded-xl bg-error-container/30 text-error text-xs font-label">${esc(csvState.error)}</p>` : ""}
           <!-- Parsed Transactions Preview Section -->
           <div class="flex flex-col gap-1.5">
             <div class="flex items-center justify-between px-1 py-1 font-label text-[10px] tracking-wider text-outline uppercase">
@@ -1761,7 +1202,7 @@
             </div>
             <div class="flex flex-col gap-1.5">
               ${csvState.rows.map((r, idx) => {
-                if (r.duplicate) {
+                if (r.duplicate || r.unknownCur) {
                   return `
                     <div class="p-2.5 rounded-xl bg-surface-container/40 border border-outline-variant/20 flex items-center justify-between gap-2.5 opacity-60">
                       <div class="flex items-center gap-2.5 min-w-0">
@@ -1769,7 +1210,7 @@
                         <div class="min-w-0">
                           <p class="font-headline text-xs line-through text-outline truncate">${esc(r.date)} · ${esc(r.merchant)}</p>
                           <div class="flex items-center gap-1.5 mt-0.5">
-                            <span class="px-1.5 py-0.2 rounded-md bg-error-container/40 text-error font-label text-[9px] font-bold">DUPLICATE SKIPPED (${esc(r.sym)})</span>
+                            <span class="px-1.5 py-0.2 rounded-md bg-error-container/40 text-error font-label text-[9px] font-bold">${r.duplicate ? "DUPLICATE SKIPPED" : "UNKNOWN CURRENCY"} (${esc(r.sym)})</span>
                           </div>
                           <p class="font-label text-[10px] text-outline mt-0.5">${esc(r.dupReason || "Already logged")}</p>
                         </div>
@@ -1819,6 +1260,92 @@
             </button>
           </footer>
         </section>
+    `;
+  }
+
+  // Plain substring search over itinerary blocks, bookings and saved places.
+  function searchTrip(q) {
+    q = String(q || "").trim().toLowerCase();
+    if (q.length < 2) return [];
+    const hit = (...xs) => xs.some(x => String(x || "").toLowerCase().includes(q));
+    const out = [];
+    (DATA.itinerary?.days || []).forEach(d => (d.blocks || []).forEach(b => {
+      if (hit(b.activity, b.notes, b.cluster)) out.push({ kind: "itinerary", label: `${d.day} · ${d.date} · ${b.time || b.block}`, title: b.activity, sub: b.cluster || "", nav: "#plan", day: d.day });
+    }));
+    (DATA.bookings?.bookings || []).forEach(b => {
+      if (hit(b.item, b.notes, b.category, IS_PUBLIC_STRIPPED ? "" : b.ref)) out.push({ kind: "booking", label: `${b.category} · ${b.date || ""}`, title: b.item, sub: b.status, nav: "#wallet" });
+    });
+    (DATA.masterlist?.items || []).forEach(m => {
+      if (hit(m.name, m.cluster, m.type)) out.push({ kind: "place", label: `${m.type} · ${m.cluster || ""}`, title: m.name, sub: m.cost || "", nav: "#plan:saved" });
+    });
+    return out;
+  }
+
+  function renderSearchAndCsvView() {
+    const results = searchTrip(STATE.searchQuery);
+    const groups = { itinerary: "Itinerary", booking: "Bookings", place: "Saved Places" };
+    const shown = STATE.searchFilter === "all" ? results : results.filter(r => r.kind === STATE.searchFilter);
+
+    return `
+      <main class="max-w-md mx-auto min-h-screen relative bg-surface-container-lowest overflow-hidden flex flex-col pb-24 shadow-2xl">
+        <!-- Ambient Subtle Radial Glow -->
+        <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/10 rounded-full blur-3xl opacity-70"></div>
+
+        <!-- 1. TopAppBar -->
+        <header class="sticky top-0 z-40 flex items-center justify-between w-full px-4 py-3 max-w-md mx-auto bg-surface-container-low/80 dark:bg-surface-container-low/80 backdrop-blur-xl">
+          <div class="flex items-center gap-2.5">
+            <span class="material-symbols-outlined text-primary text-xl" data-icon="flight_takeoff">flight_takeoff</span>
+            <h1 class="font-headline text-sm font-bold tracking-tight text-on-surface">${esc(DISPLAY_TITLE)}</h1>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high/90 border border-outline-variant/30 text-[11px] font-label font-medium text-primary tracking-tight">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+              1 ${PRIMARY_FX_CUR} ≈ ${HOME_SYM}${PRIMARY_FX_RATE.toFixed(2)}
+            </div>
+            <button data-nav="#wallet:spend" aria-label="Dismiss" class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface active:scale-95 transition-transform">
+              <span class="material-symbols-outlined text-lg" data-icon="close">close</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Main Content Canvas (Global Command Search & Contextual Matches) -->
+        <section class="flex-1 px-4 pt-3 pb-6 flex flex-col gap-4">
+          <div class="relative flex flex-col gap-2.5">
+            <div class="relative flex items-center w-full rounded-2xl bg-surface-container/90 border border-primary/40 shadow-lg shadow-primary/5 px-3 py-2.5 backdrop-blur-md">
+              <span class="material-symbols-outlined text-primary text-xl mr-2.5" data-icon="search">search</span>
+              <input id="global-search-input" class="w-full bg-transparent border-0 p-0 text-sm font-medium text-on-surface placeholder:text-outline focus:ring-0 focus:outline-none" placeholder="Search days, bookings, places…" type="text" value="${esc(STATE.searchQuery)}"/>
+              <button data-action="clear-search" aria-label="Clear" class="flex items-center justify-center w-5 h-5 rounded-full bg-surface-container-highest text-on-surface-variant hover:text-on-surface transition-colors text-xs mr-2">
+                ✕
+              </button>
+              <kbd class="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-label text-outline bg-surface-container-highest rounded border border-outline-variant/40">
+                ⌘K
+              </kbd>
+            </div>
+            <!-- Filter Chips Row -->
+            <div class="flex items-center gap-1.5 overflow-x-auto custom-scroll py-0.5">
+              ${[["all", "All"], ...Object.entries(groups)].map(([k, label]) => {
+                const n = k === "all" ? results.length : results.filter(r => r.kind === k).length;
+                const on = STATE.searchFilter === k;
+                return `<button data-action="set-search-filter" data-filter="${k}" class="px-3 py-1 rounded-xl font-label text-xs whitespace-nowrap ${on ? "bg-primary-container text-on-primary-container font-semibold" : "bg-surface-container-high/80 text-on-surface-variant border border-outline-variant/30"}">${label} (${n})</button>`;
+              }).join("")}
+            </div>
+          </div>
+
+          <!-- Instant Search Results -->
+          <div class="flex flex-col gap-3">
+            ${STATE.searchQuery.trim().length < 2
+              ? `<p class="text-xs text-on-surface-variant text-center py-6">Type at least 2 characters.</p>`
+              : !shown.length ? `<p class="text-xs text-on-surface-variant text-center py-6">No matches.</p>`
+              : shown.slice(0, 50).map(r => `
+              <article ${r.day ? `data-action="set-plan-day" data-day="${esc(r.day)}" data-goto="#plan"` : `data-nav="${r.nav}"`} class="p-3.5 rounded-2xl bg-surface-container-low border border-outline-variant/30 flex flex-col gap-1 cursor-pointer">
+                <span class="font-label text-[10px] font-semibold text-primary tracking-wide uppercase">${esc(groups[r.kind])} · ${esc(r.label)}</span>
+                <h2 class="font-headline text-sm font-semibold text-on-surface">${esc(r.title)}</h2>
+                ${r.sub ? `<span class="text-xs text-on-surface-variant">${esc(r.sub)}</span>` : ""}
+              </article>`).join("")}
+          </div>
+        </section>
+
+        ${STATE.route === "search:csv" ? renderCsvDrawer() : ""}
       </main>
     `;
   }
@@ -1829,10 +1356,9 @@
   function renderToolkitView() {
     const cityKey = STATE.toolkitCity || "SIN";
     const isKul = cityKey === "KUL";
-    const live = STATE.liveWeather[cityKey];
-    const heroTemp = live ? `${live.temp}°C` : isKul ? "31°C" : "29°C";
-    const feelsTemp = live ? `${live.feelsLike}°C` : isKul ? "35°C" : "34°C";
-    const humidity = live ? `${live.humidity}%` : isKul ? "78%" : "82%";
+    const live = STATE.liveWeather[cityKey] || loadCachedWeather(cityKey);
+    const ageMin = live ? Math.round((Date.now() - live.updatedAt) / 60000) : null;
+    const d = live?.daily;
     const notesList = loadNotes();
 
     return `
@@ -1843,7 +1369,7 @@
             <span class="material-symbols-outlined text-primary text-xl" data-icon="flight_takeoff">flight_takeoff</span>
             <span class="font-headline text-sm font-bold tracking-tight text-on-surface dark:text-on-surface">${esc(DISPLAY_TITLE)}</span>
           </div>
-          <button data-nav="#search:csv" aria-label="Global Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95">
+          <button data-nav="#search" aria-label="Global Search" class="p-1.5 rounded-lg text-on-surface-variant hover:text-primary transition-colors duration-150 active:scale-95">
             <span class="material-symbols-outlined text-xl" data-icon="search">search</span>
           </button>
         </header>
@@ -1889,90 +1415,39 @@
               </div>
               <div class="inline-flex items-center space-x-1 bg-tertiary-container/15 px-2 py-0.5 rounded-full">
                 <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-                <span class="font-label text-[10px] font-semibold text-tertiary tracking-tight">UPDATED 2M AGO</span>
+                <span class="font-label text-[10px] font-semibold text-tertiary tracking-tight">${ageMin == null ? "NO DATA" : ageMin < 1 ? "JUST NOW" : ageMin < 120 ? `UPDATED ${ageMin}M AGO` : `CACHED ${Math.round(ageMin / 60)}H AGO`}</span>
               </div>
             </div>
 
+            ${!live ? `<p class="text-xs text-on-surface-variant py-4">No forecast yet — connect once to load live weather (cached for offline).</p>` : `
             <div class="flex items-baseline justify-between mt-1">
               <div class="flex items-baseline space-x-2">
-                <span class="font-label text-5xl font-bold tracking-tight text-on-surface">${heroTemp}</span>
-                <span class="font-headline text-sm font-medium text-on-surface-variant">Thunderstorm Risk</span>
+                <span class="font-label text-5xl font-bold tracking-tight text-on-surface">${live.temp}°C</span>
+                <span class="font-headline text-sm font-medium text-on-surface-variant">${esc(wmo(live.code)[1])}</span>
               </div>
-              <div class="flex items-center space-x-1 text-primary-container">
-                <span class="material-symbols-outlined text-4xl" data-icon="thunderstorm" style="font-variation-settings: 'FILL' 1;">thunderstorm</span>
-              </div>
+              <span class="material-symbols-outlined text-4xl text-primary-container">${wmo(live.code)[0]}</span>
             </div>
-
             <div class="mt-2 text-xs font-headline text-on-surface-variant flex flex-wrap gap-x-2 gap-y-1">
-              <span>Feels like <strong class="text-on-surface font-label font-semibold">${feelsTemp}</strong></span>
+              <span>Feels like <strong class="text-on-surface font-label">${live.feelsLike}°C</strong></span>
               <span>•</span>
-              <span>Humidity <strong class="text-on-surface font-label font-semibold">${humidity}</strong></span>
+              <span>Humidity <strong class="text-on-surface font-label">${live.humidity}%</strong></span>
               <span>•</span>
-              <span class="text-amber-300 font-medium">UV Index 9 (Very High)</span>
+              <span>Wind <strong class="text-on-surface font-label">${live.wind} km/h</strong></span>
+              ${live.uv != null ? `<span>•</span><span>UV <strong class="text-on-surface font-label">${live.uv}</strong></span>` : ""}
             </div>
-
-            <div class="grid grid-cols-3 gap-2 mt-3.5 pt-3">
-              <div class="bg-surface-container/70 rounded-xl p-2.5 flex flex-col">
-                <span class="font-headline text-[10px] text-outline">Wind Velocity</span>
-                <span class="font-label text-xs font-bold text-on-surface mt-0.5">14 km/h NE</span>
-              </div>
-              <div class="bg-surface-container/70 rounded-xl p-2.5 flex flex-col">
-                <span class="font-headline text-[10px] text-outline">Dew Point</span>
-                <span class="font-label text-xs font-bold text-on-surface mt-0.5">25°C Tabular</span>
-              </div>
-              <div class="bg-surface-container/70 rounded-xl p-2.5 flex flex-col">
-                <span class="font-headline text-[10px] text-outline">Rain Probability</span>
-                <span class="font-label text-xs font-bold text-primary mt-0.5">65% High</span>
-              </div>
-            </div>
-
-            <!-- 5-Day Mini Forecast Strip -->
+            ${d?.time ? `
             <div class="mt-4 pt-3.5">
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-headline text-xs font-semibold text-on-surface">5-Day Multi-City Outlook</span>
-                <span class="font-label text-[10px] text-outline">NOV 14 – 18</span>
+              <span class="font-headline text-xs font-semibold text-on-surface">${d.time.length}-Day Outlook</span>
+              <div class="grid grid-cols-5 gap-1.5 text-center mt-2">
+                ${d.time.slice(0, 5).map((t, i) => `
+                  <div class="bg-surface-container/40 p-2 rounded-xl flex flex-col items-center">
+                    <span class="font-label text-[10px] text-outline">${new Date(t + "T12:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })}</span>
+                    <span class="material-symbols-outlined text-lg my-1 text-primary">${wmo(d.weather_code?.[i])[0]}</span>
+                    <span class="font-label text-[11px] font-bold text-on-surface">${Math.round(d.temperature_2m_max?.[i])}°/${Math.round(d.temperature_2m_min?.[i])}°</span>
+                    <span class="font-label text-[9px] text-outline mt-0.5">${d.precipitation_probability_max?.[i] ?? "–"}% 🌧</span>
+                  </div>`).join("")}
               </div>
-              <div class="grid grid-cols-5 gap-1.5 text-center">
-                <div class="bg-surface-container/40 p-2 rounded-xl flex flex-col items-center">
-                  <span class="font-label text-[10px] text-outline font-medium">Fri 14</span>
-                  <span class="material-symbols-outlined text-lg my-1 text-primary" data-icon="partly_cloudy_day">partly_cloudy_day</span>
-                  <span class="font-label text-[11px] font-bold text-on-surface">31°/26°</span>
-                  <span class="font-label text-[9px] text-outline mt-0.5">SIN</span>
-                </div>
-                <div class="bg-surface-container-high/60 p-2 rounded-xl flex flex-col items-center">
-                  <span class="font-label text-[10px] text-primary font-semibold">Sat 15</span>
-                  <span class="material-symbols-outlined text-lg my-1 text-primary-container" data-icon="thunderstorm">thunderstorm</span>
-                  <span class="font-label text-[11px] font-bold text-on-surface">30°/25°</span>
-                  <span class="font-label text-[9px] text-rose-300 font-semibold mt-0.5">70% 🌧</span>
-                </div>
-                <div class="bg-surface-container/40 p-2 rounded-xl flex flex-col items-center">
-                  <span class="font-label text-[10px] text-outline font-medium">Sun 16</span>
-                  <span class="material-symbols-outlined text-lg my-1 text-primary-container" data-icon="thunderstorm">thunderstorm</span>
-                  <span class="font-label text-[11px] font-bold text-on-surface">29°/26°</span>
-                  <span class="font-label text-[9px] text-rose-300 font-semibold mt-0.5">60% 🌧</span>
-                </div>
-                <div class="bg-surface-container/40 p-2 rounded-xl flex flex-col items-center">
-                  <span class="font-label text-[10px] text-outline font-medium">Mon 17</span>
-                  <span class="material-symbols-outlined text-lg my-1 text-amber-300" data-icon="sunny">sunny</span>
-                  <span class="font-label text-[11px] font-bold text-on-surface">32°/24°</span>
-                  <span class="font-label text-[9px] text-secondary font-medium mt-0.5">KUL</span>
-                </div>
-                <div class="bg-surface-container/40 p-2 rounded-xl flex flex-col items-center">
-                  <span class="font-label text-[10px] text-outline font-medium">Tue 18</span>
-                  <span class="material-symbols-outlined text-lg my-1 text-primary" data-icon="partly_cloudy_day">partly_cloudy_day</span>
-                  <span class="font-label text-[11px] font-bold text-on-surface">31°/25°</span>
-                  <span class="font-label text-[9px] text-secondary font-medium mt-0.5">KUL</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Smart Packing & Gear Advisory Callout Chip -->
-            <div class="mt-3.5 bg-amber-500/10 rounded-xl p-2.5 flex items-start space-x-2.5">
-              <span class="material-symbols-outlined text-amber-300 text-base shrink-0 mt-0.5" data-icon="warning">warning</span>
-              <p class="font-headline text-xs text-amber-200/90 leading-snug">
-                <strong class="text-amber-300">Weather Advisory:</strong> Carry compact umbrella &amp; breathable linen; high afternoon thunderstorm probability (<span class="font-label text-[11px] font-semibold">15:00–17:00</span>).
-              </p>
-            </div>
+            </div>` : ""}`}
           </section>
 
           <!-- 2. Essentials & Connectivity Bento Grid (2x2) -->
@@ -1993,8 +1468,7 @@
                 <div>
                   <h3 class="font-headline text-xs font-bold text-on-surface">Transit &amp; Fare</h3>
                   <p class="font-headline text-[11px] text-on-surface-variant mt-1 leading-relaxed">
-                    SimplyGo active. Tap Visa/Mastercard directly at MRT gantries. Grab &amp; Gojek primed.
-                  </p>
+                    Tap Visa/Mastercard directly at MRT/bus gantries (SimplyGo). KL: Grab + Touch &apos;n Go.</p>
                 </div>
                 <div class="pt-1.5 flex items-center space-x-1 font-label text-[10px] text-outline">
                   <span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
@@ -2008,17 +1482,16 @@
                   <div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
                     <span class="material-symbols-outlined text-lg" data-icon="electrical_services">electrical_services</span>
                   </div>
-                  <span class="font-label text-[10px] font-bold text-secondary bg-secondary-container/30 px-1.5 py-0.5 rounded-md">12.4 GB</span>
+                  <span class="font-label text-[10px] font-bold text-secondary bg-secondary-container/30 px-1.5 py-0.5 rounded-md">TYPE G</span>
                 </div>
                 <div>
                   <h3 class="font-headline text-xs font-bold text-on-surface">Power &amp; eSIM</h3>
                   <p class="font-headline text-[11px] text-on-surface-variant mt-1 leading-relaxed">
-                    Type G (UK 3-pin, 230V). Airalo SG+MY Regional eSIM active on 5G Singtel &amp; Celcom.
-                  </p>
+                    Type G (UK 3-pin, 230V) in both countries. eSIM plan: see Essentials docket.</p>
                 </div>
                 <div class="pt-1.5 flex items-center space-x-1 font-label text-[10px] text-outline">
                   <span class="material-symbols-outlined text-[13px] text-primary" data-icon="sim_card">sim_card</span>
-                  <span>Dual IMSI auto-switch</span>
+                  <span>Carry a universal adapter</span>
                 </div>
               </article>
 
@@ -2033,24 +1506,20 @@
                 <div>
                   <h3 class="font-headline text-xs font-bold text-on-surface">Emergency Hub</h3>
                   <div class="mt-1 space-y-0.5 font-label text-[11px] text-on-surface-variant">
+                    ${(isKul ? [["Police / Ambulance", "999"], ["From mobile", "112"]] : [["Ambulance / Fire", "995"], ["Police", "999"]]).map(([l, n]) => `
                     <div class="flex justify-between items-center">
-                      <span>Ambulance:</span>
-                      <a class="text-primary font-bold" href="tel:995">995</a>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <span>Police:</span>
-                      <a class="text-primary font-bold" href="tel:999">999</a>
-                    </div>
+                      <span>${l}:</span>
+                      <a class="text-primary font-bold" href="tel:${n}">${n}</a>
+                    </div>`).join("")}
                   </div>
                 </div>
-                ${!IS_PUBLIC_STRIPPED ? `
-                  <a class="pt-1 flex items-center justify-between text-[10px] font-headline text-outline hover:text-on-surface" href="tel:+6567376777">
-                    <span>High Comm. India</span>
-                    <span class="font-label text-primary font-bold">+65 6737</span>
-                  </a>
-                ` : `
-                  <span class="pt-1 text-[10px] font-headline text-outline">Local Emergency Lines</span>
-                `}
+                ${(() => {
+                  const cityName = (CFG.cities?.[cityKey]?.name || "").toLowerCase();
+                  const hc = (DATA.essentials?.emergencyContacts || []).find(c => /high commission|embassy|consulate/i.test(c.label) && c.label.toLowerCase().includes(cityName));
+                  return hc ? `<a class="pt-1 flex items-center justify-between text-[10px] font-headline text-outline" href="tel:${esc(hc.value.replace(/[^+\d]/g, ""))}">
+                    <span>${esc(hc.label.replace(/,.*$/, ""))}</span><span class="font-label text-primary font-bold">${esc(hc.value)}</span></a>`
+                    : `<span class="pt-1 text-[10px] font-headline text-outline">Local Emergency Lines</span>`;
+                })()}
               </article>
 
               <!-- Card 4: Etiquette & Customs -->
@@ -2064,7 +1533,7 @@
                 <div>
                   <h3 class="font-headline text-xs font-bold text-on-surface">Customs &amp; Rules</h3>
                   <p class="font-headline text-[11px] text-on-surface-variant mt-1 leading-relaxed">
-                    Strict ban on vaping &amp; chewing gum. Return hawker trays &amp; crockery to avoid S$300 statutory fine.
+                    ${isKul ? "Dress modestly at mosques &amp; Batu Caves (sarong rental on site). Vaping legal but banned indoors in eateries." : "Strict ban on vaping &amp; chewing gum. Return hawker trays &amp; crockery to avoid S$300 statutory fine."}
                   </p>
                 </div>
                 <div class="pt-1.5 flex items-center space-x-1 font-label text-[10px] text-outline">
@@ -2115,8 +1584,8 @@
                     <span class="material-symbols-outlined text-base" data-icon="train">train</span>
                   </div>
                   <div>
-                    <p class="font-headline text-xs font-semibold text-on-surface">Kuala Lumpur KLIA Ekspres</p>
-                    <p class="font-label text-[10px] text-outline">28-min non-stop speed train to KL Sentral</p>
+                    <p class="font-headline text-xs font-semibold text-on-surface">Malaysia Digital Arrival Card (MDAC)</p>
+                    <p class="font-label text-[10px] text-outline">Submit within 3 days before entering Malaysia</p>
                   </div>
                 </div>
                 <span class="material-symbols-outlined text-on-surface-variant text-base" data-icon="arrow_outward">arrow_outward</span>
@@ -2278,7 +1747,7 @@
       "wallet:budget": "wallet:budget",
       "budget": "wallet:budget",
       "search:csv": "search:csv",
-      "search": "search:csv",
+      "search": "search",
       "toolkit": "toolkit",
       "weather": "toolkit",
       "essentials": "toolkit",
@@ -2291,6 +1760,7 @@
     const root = document.getElementById("app-root");
     if (!root) return;
     STATE.route = parseHashRoute(window.location.hash);
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; } // free WebGL context (iOS caps them)
 
     if (STATE.route === "today") {
       root.innerHTML = renderTodayView();
@@ -2305,7 +1775,7 @@
       root.innerHTML = renderWalletPassesView();
     } else if (STATE.route === "wallet:spend" || STATE.route === "wallet:budget") {
       root.innerHTML = renderWalletSpendView();
-    } else if (STATE.route === "search:csv") {
+    } else if (STATE.route === "search" || STATE.route === "search:csv") {
       root.innerHTML = renderSearchAndCsvView();
     } else if (STATE.route === "toolkit") {
       root.innerHTML = renderToolkitView();
@@ -2313,7 +1783,17 @@
       root.innerHTML = renderTodayView();
     }
 
-    // Bind live search inputs if present
+    // Bind live search inputs if present (full re-render, then restore focus + caret)
+    const globalSearch = document.getElementById("global-search-input");
+    if (globalSearch) {
+      globalSearch.addEventListener("input", e => {
+        STATE.searchQuery = e.target.value;
+        const pos = e.target.selectionStart;
+        renderApp();
+        const el = document.getElementById("global-search-input");
+        if (el) { el.focus(); el.setSelectionRange(pos, pos); }
+      });
+    }
     const savedSearch = document.getElementById("saved-places-search");
     if (savedSearch) {
       savedSearch.addEventListener("input", e => {
@@ -2364,14 +1844,22 @@
       STATE.todayDay = actEl.getAttribute("data-day") || null;
       renderApp();
     } else if (action === "toggle-check") {
-      const idx = actEl.getAttribute("data-idx");
+      const item = actEl.getAttribute("data-item");
       const checks = loadChecklist();
-      checks[idx] = !checks[idx];
+      checks[item] = !checks[item];
       saveChecklist(checks);
       renderApp();
     } else if (action === "set-plan-day") {
       STATE.planDay = actEl.getAttribute("data-day") || null;
+      const go = actEl.getAttribute("data-goto");
+      if (go && window.location.hash !== go) window.location.hash = go; else renderApp();
+    } else if (action === "set-search-filter") {
+      STATE.searchFilter = actEl.getAttribute("data-filter") || "all";
       renderApp();
+    } else if (action === "clear-search") {
+      STATE.searchQuery = "";
+      renderApp();
+      document.getElementById("global-search-input")?.focus();
     } else if (action === "set-saved-filter") {
       STATE.savedFilter = actEl.getAttribute("data-filter") || "all";
       renderApp();
@@ -2380,30 +1868,21 @@
       STATE.savedQuery = "";
       renderApp();
     } else if (action === "set-map-day") {
-      STATE.mapDay = actEl.getAttribute("data-day") || "D3";
-      renderApp();
-    } else if (action === "toggle-map-route") {
-      STATE.mapRouteOn = !STATE.mapRouteOn;
-      renderApp();
-    } else if (action === "toggle-map-radar") {
-      STATE.mapRadarOn = !STATE.mapRadarOn;
-      renderApp();
-    } else if (action === "toggle-live-map") {
-      STATE.mapLiveCanvas = !STATE.mapLiveCanvas;
+      STATE.mapDay = actEl.getAttribute("data-day") || "all";
       renderApp();
     } else if (action === "map-zoom-in") {
       if (mapInstance) mapInstance.zoomIn();
     } else if (action === "map-zoom-out") {
       if (mapInstance) mapInstance.zoomOut();
     } else if (action === "recenter-map") {
-      if (mapInstance && DATA["map-config"]?.center) {
-        mapInstance.flyTo({ center: [DATA["map-config"].center[1], DATA["map-config"].center[0]], zoom: 13 });
+      const pts = mapPois();
+      if (mapInstance && pts.length) {
+        const b = new maplibregl.LngLatBounds();
+        pts.forEach(p => b.extend([p.lon, p.lat]));
+        mapInstance.fitBounds(b, { padding: 40, maxZoom: 15 });
       }
     } else if (action === "set-wallet-cat") {
       STATE.walletCat = actEl.getAttribute("data-cat") || "all";
-      renderApp();
-    } else if (action === "toggle-wallet-all") {
-      STATE.walletShowAll = !STATE.walletShowAll;
       renderApp();
     } else if (action === "open-qr-modal") {
       openQrModal(actEl.getAttribute("data-title"), actEl.getAttribute("data-ref"));
@@ -2418,14 +1897,14 @@
     } else if (action === "toggle-csv-row") {
       const idx = Number(actEl.getAttribute("data-idx"));
       const csvState = loadCsvPreview();
-      if (csvState.rows[idx] && !csvState.rows[idx].duplicate) {
+      if (csvState.rows[idx] && !csvState.rows[idx].duplicate && !csvState.rows[idx].unknownCur) {
         csvState.rows[idx].checked = !csvState.rows[idx].checked;
         saveCsvPreview(csvState);
         renderApp();
       }
     } else if (action === "commit-csv-import") {
       const csvState = loadCsvPreview();
-      const toCommit = csvState.rows.filter(r => r.checked && !r.duplicate);
+      const toCommit = csvState.rows.filter(r => r.checked && !r.duplicate && !r.unknownCur);
       if (toCommit.length) {
         const list = loadExpenses();
         toCommit.forEach(r => {
@@ -2442,12 +1921,13 @@
         });
         saveExpenses(list);
       }
+      saveCsvPreview({ filename: "", rows: [] }); // prevent double commit
       window.location.hash = "#wallet:spend";
     } else if (action === "export-expenses-csv") {
       const list = loadExpenses();
       const lines = ["Date,Merchant,Category,Amount,Currency,HomeAmount"];
       list.forEach(r => {
-        lines.push(`"${r.date}","${String(r.merchant).replace(/"/g, '""')}","${r.category}",${r.amount},${r.currency},${r.homeAmount}`);
+        lines.push([r.date, r.merchant, r.category, r.amount, r.currency, r.homeAmount].map(csvCell).join(","));
       });
       const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a");
@@ -2486,13 +1966,11 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
-        const parsed = convertCsvToPreviewRows(String(ev.target?.result || ""), file.name);
-        if (parsed && parsed.rows.length) {
-          saveCsvPreview(parsed);
-          renderApp();
-        }
+        saveCsvPreview(convertCsvToPreviewRows(String(ev.target?.result || ""), file.name));
+        renderApp();
       };
       reader.readAsText(file);
+      e.target.value = ""; // allow re-picking the same file
     });
   }
 
@@ -2525,8 +2003,13 @@
     renderApp();
 
     // Fetch live Open-Meteo telemetry in background
+    // (cache first, then live; only re-render screens that show weather so typing/map aren't disturbed)
     Object.keys(CFG.cities || {}).forEach(cityCode => {
-      fetchLiveWeatherForCity(cityCode);
+      const cached = loadCachedWeather(cityCode);
+      if (cached) STATE.liveWeather[cityCode] = cached;
+      fetchLiveWeatherForCity(cityCode).then(() => {
+        if (STATE.route === "today" || STATE.route === "toolkit") renderApp();
+      });
     });
 
     if ("serviceWorker" in navigator) {

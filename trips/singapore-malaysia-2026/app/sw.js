@@ -1,7 +1,7 @@
 /* ── Service Worker ───────────────────────────────────────────────
    Bump CACHE for each new trip (or each significant update).
    ─────────────────────────────────────────────────────────────── */
-const CACHE = "trip-cache-v17"; // keep in sync with TRIP_CONFIG.swCacheName
+const CACHE = "trip-cache-v18"; // keep in sync with TRIP_CONFIG.swCacheName
 
 const STATIC = [
   "./",
